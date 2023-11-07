@@ -21,10 +21,15 @@ class FashionMLP(nn.Module):
         if self.config.use_linear:
             top_embed = self.relu(self.fc_for_top(top_embed))
             bottom_embed = self.relu(self.fc_for_bottom(bottom_embed))
+            negative_bottom_embed = self.relu(self.fc_for_bottom(negative_bottom_embed))
 
-        concat_all = torch.cat([top_embed, bottom_embed], dim=1)
-        output_all = self.relu(self.fc_for_all1(concat_all))
-        output_all = self.fc_for_all2(output_all)
+        concat_positive = torch.cat([top_embed, bottom_embed], dim=1)
+        output_positive = self.relu(self.fc_for_all1(concat_positive))
+        output_positive = self.fc_for_all2(output_positive)
+
+        concat_negative = torch.cat([top_embed, negative_bottom_embed], dim = 1)
+        output_negative = self.relu(self.fc_for_all1(concat_negative))
+        output_negative = self.fc_for_all2(output_negative)
 
 
-        return output_all
+        return output_positive, output_negative
