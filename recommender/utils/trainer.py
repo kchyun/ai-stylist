@@ -4,7 +4,7 @@ import tqdm
 import numpy as np
 
 from torch.optim import Adam, lr_scheduler
-from 
+from model.loss import PairwiseRankingLoss
 
 
 class Trainer:
@@ -53,9 +53,9 @@ class Trainer:
             _, negative_bottom_embed = batch['negative_pair']
             self.optimizer.zero_grad()
 
-            self.model(positive_top_embed, positive_bottom_embed, )
+            self.model(positive_top_embed, positive_bottom_embed, negative_bottom_embed)
 
-            loss =  - (output_positive - output_negative1).sigmoid().log().sum()
+            loss =  PairwiseRankingLoss()
             loss.backward()
             self.optimizer.step()
             self.scheduler.step()
