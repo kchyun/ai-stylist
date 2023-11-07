@@ -15,7 +15,7 @@ def define_argparser():
 
     p.add_argument('--use_linear', type=bool, default=True)
     p.add_argument('--batch_size', type=int, default=128)
-    p.add_argument('--learning_rate', default=0.0001)
+    p.add_argument('--learning_rate', type=float, default=0.0001)
 
     p.add_argument('--n_epochs', type=int, default=40)
     p.add_argument('--gpu_id', type=int, default=0 if torch.cuda.is_available() else -1)
@@ -47,8 +47,8 @@ def main(config):
     trainer.train()
 
     torch.save({
-        'model' : trainer.model.state_dict(),
-        'opt': optimizer.state_dict(),
+        'model' : trainer.best_model,
+        'opt': trainer.best_optimizer,
         'config': config
     }, config.model_fn)
 

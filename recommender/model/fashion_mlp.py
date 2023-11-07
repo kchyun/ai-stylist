@@ -16,7 +16,7 @@ class FashionMLP(nn.Module):
         self.relu = nn.ReLU()
         self.config = config
     
-    def forward(self, top_embed, positive_bottom_embed, negative_bottom_embed):
+    def forward(self, top_embed, bottom_embed, negative_bottom_embed):
         
         if self.config.use_linear:
             top_embed = self.relu(self.fc_for_top(top_embed))

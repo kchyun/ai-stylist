@@ -11,9 +11,9 @@ from torch.utils.data import Dataset, DataLoader, random_split
 
 from typing import Optional, Dict, List, Set, Tuple
 
-PAIRS_PATH = '/Users/owj0421/Desktop/Projects/2023/ai-stylist-data/FashionVCdata/gnd_top_bottom_pairs.csv'
-TOP_EMBEDS_PATH = '/Users/owj0421/Desktop/Projects/2023/ai-stylist-data/FashionVCdata/top_embeds.json'
-BOTTOM_EMBEDS_PATH = '/Users/owj0421/Desktop/Projects/2023/ai-stylist-data/FashionVCdata/bottom_embeds.json'
+PAIRS_PATH = 'C:/Users/omniv/PycharmProjects/Recommendation/FashionVCdata/FashionVCdata/gnd_top_bottom_pairs.csv'
+TOP_EMBEDS_PATH = 'C:/Users/omniv/PycharmProjects/Recommendation/FashionVCdata/FashionVCdata/top_embeds.json'
+BOTTOM_EMBEDS_PATH = 'C:/Users/omniv/PycharmProjects/Recommendation/FashionVCdata/FashionVCdata/bottom_embeds.json'
 
 
 class FashionMLPDataset(Dataset):
