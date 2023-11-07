@@ -1,0 +1,6 @@
+# model
+*.pth
+
+# data
+*.jpg
+*.png
