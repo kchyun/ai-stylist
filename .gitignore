@@ -4,3 +4,7 @@
 # data
 *.jpg
 *.png
+
+#수정하지 마세요.
+datasets/
+__pycache__

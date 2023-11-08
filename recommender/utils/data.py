@@ -11,17 +11,18 @@ from torch.utils.data import Dataset, DataLoader, random_split
 
 from typing import Optional, Dict, List, Set, Tuple
 
-PAIRS_PATH = 'C:/Users/omniv/PycharmProjects/Recommendation/FashionVCdata/FashionVCdata/gnd_top_bottom_pairs.csv'
-TOP_EMBEDS_PATH = 'C:/Users/omniv/PycharmProjects/Recommendation/FashionVCdata/FashionVCdata/top_embeds.json'
-BOTTOM_EMBEDS_PATH = 'C:/Users/omniv/PycharmProjects/Recommendation/FashionVCdata/FashionVCdata/bottom_embeds.json'
+from copy import deepcopy
 
+PAIRS_PATH = "C:/Users/owj04/Desktop/Projects/ai-stylist/datasets/FashionVCdata/FashionVCdata/gnd_top_bottom_pairs.csv"
+TOP_EMBEDS_PATH = "C:/Users/owj04/Desktop/Projects/ai-stylist/datasets/FashionVCdata/FashionVCdata/top_embeds.json"
+BOTTOM_EMBEDS_PATH = "C:/Users/owj04/Desktop/Projects/ai-stylist/datasets/FashionVCdata/FashionVCdata/bottom_embeds.json"
 
 class FashionMLPDataset(Dataset):
     def __init__(
         self,
         pairs: Dict[str, Set[str]],
         dataset_type: str='train'
-    ):
+        ):
         super(FashionMLPDataset).__init__()
         self.dataset_type = dataset_type
         self.pairs = pairs
@@ -35,11 +36,13 @@ class FashionMLPDataset(Dataset):
     def __getitem__(self, idx):
         if self.dataset_type == 'train':
             top_idx, bottom_idx = self.data[idx]
-            neg_bottom_idx = self._get_neg_bottom(top_idx)
-            positive_pair = (self.top_embeds[top_idx], self.bottom_embeds[bottom_idx])
-            negative_pair = (self.top_embeds[top_idx], self.bottom_embeds[neg_bottom_idx])
-            item = {'positive_pair' : positive_pair,
-                    'negative_pair' : negative_pair}
+            neg_bottom_idxs = self._get_neg_bottom(top_idx, n=128)
+
+            source_embed = self.top_embeds[top_idx]
+            pos_embed = self.bottom_embeds[bottom_idx]
+            neg_embeds = [self.bottom_embeds[neg_bottom_idx] for neg_bottom_idx in neg_bottom_idxs]
+
+            item = (source_embed, pos_embed, neg_embeds)
         else:
             top_idx, bottom_idx = self.data[idx]
             item = {'input_embed' : self.top_embeds[top_idx],
@@ -47,12 +50,13 @@ class FashionMLPDataset(Dataset):
             
         return item
             
-    def _get_neg_bottom(self, top_idx) -> str:
-        neg_bottom_idx = self.data[random.randint(0, len(self.data) - 1)][-1]
-        cnt = 0
-        while (neg_bottom_idx in self.pairs[top_idx]) & (cnt < 32):
+    def _get_neg_bottom(self, top_idx, n):
+        neg_bottom_idxs = []
+        while len(neg_bottom_idxs) < 128:
             neg_bottom_idx = self.data[random.randint(0, len(self.data) - 1)][-1]
-        return str(neg_bottom_idx)
+            if neg_bottom_idx not in self.pairs[top_idx]:
+                neg_bottom_idxs.append(str(neg_bottom_idx))
+        return neg_bottom_idxs
         
     def _preprocess_embeds(self, path):
         with open(path, 'r') as f:
@@ -60,15 +64,17 @@ class FashionMLPDataset(Dataset):
         return {str(item['id']): Tensor(item['embed']) for item in items}
 
 
-def get_dataset() -> Tuple[FashionMLPDataset, FashionMLPDataset]:
+def get_dataset(model_type='MLP') -> Tuple[FashionMLPDataset, FashionMLPDataset]:
     print('Dataset generating starts...')
     pair_df = pd.read_csv(PAIRS_PATH)
     pairs = defaultdict(list)
     for i, (top, bottom) in pair_df.iterrows():
         pairs[str(top)].append(str(bottom))
     train_pairs, test_pairs = _hit_rate_split(pairs)
-    return (FashionMLPDataset(train_pairs, 'train'),
-            FashionMLPDataset(test_pairs, 'test'))
+
+    if model_type == 'MLP':
+        return (FashionMLPDataset(train_pairs, 'train'),
+                FashionMLPDataset(test_pairs, 'test'))
     
     
 def _hit_rate_split(pairs: Dict[str, List[str]]) -> Tuple[Dict[str, Set[str]], Dict[str, Set[str]]]:
@@ -79,9 +85,4 @@ def _hit_rate_split(pairs: Dict[str, List[str]]) -> Tuple[Dict[str, Set[str]], D
         train_pairs[top_idx] = set(bottom_list)
         test_pairs[top_idx] = set(test_bottom)
     return train_pairs, test_pairs
-
-
-if __name__ == '__main__':
-    train_dataset, test_dataset = get_dataset()
-    print(train_dataset[0])
     
