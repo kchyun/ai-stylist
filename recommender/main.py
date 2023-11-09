@@ -1,3 +1,4 @@
+import os
 import argparse
 import torch
 
@@ -9,16 +10,20 @@ from utils.trainer import Trainer
 from utils.data import get_dataset
 from dataclasses import dataclass
 
+LOAD_PATH = 0
+MODEL_PATH = 'C:/Users/owj04/Desktop/Projects/ai-stylist/recommender/model'
+MODEL_NAME = 'tmp'
+
 @dataclass
 class TrainingArgs:
     n_batch: int=256
-    n_epochs: int=500
+    n_epochs: int=18
     learning_rate: float=0.0001
     device: str='cuda'
 
 @dataclass
 class ModelArgs:
-    embed_size: int=512
+    None
 
 
 def main():
@@ -30,16 +35,15 @@ def main():
     train_dataloader = DataLoader(train_dataset, TrainingArgs.n_batch, shuffle=True)
     valid_dataloader = DataLoader(valid_dataset, TrainingArgs.n_batch, shuffle=False)
 
-    model = FashionMLP(ModelArgs).to(device)
+    model = FashionMLP(512, ModelArgs).to(device)
     optimizer = Adam(model.parameters(), lr=TrainingArgs.learning_rate)
     scheduler = lr_scheduler.StepLR(optimizer, step_size = 100, gamma=0.9)
     
     trainer = Trainer(model, train_dataloader, valid_dataloader, optimizer=optimizer, scheduler=scheduler, device=device, TrainingArgs=TrainingArgs)
 
     trainer.train()
+    trainer.save(MODEL_PATH, MODEL_NAME) 
 
-    torch.save({'model' : trainer.best_model,
-                'optimizer': trainer.best_optimizer})
 
 if __name__ == '__main__':
     main()
