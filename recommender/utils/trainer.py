@@ -6,7 +6,8 @@ import numpy as np
 from tqdm import tqdm
 from copy import deepcopy
 from torch.optim import Adam, lr_scheduler
-from model.loss import PairwiseRankingLoss
+from model.loss import PairwiseRankingLoss, TripletLoss
+from model.fashion_mlp import FashionMLP, FashionSIAMESE
 
 
 class Trainer:
@@ -33,18 +34,27 @@ class Trainer:
                 self.best_model_state = deepcopy(self.model.state_dict())
                 self.best_optimizer_state = deepcopy(self.optimizer.state_dict())
 
-
     def _train(self, dataloader, epoch):
         self.model.train()
+
         epoch_iterator = tqdm(dataloader)
+
         losses = 0.0
         for iter, batch in enumerate(epoch_iterator, start=1):
             self.optimizer.zero_grad()
-            source_embed, pos_embed, neg_embeds = batch
-            pos = self.model(source_embed.to(self.device), pos_embed.to(self.device))
-            neg = torch.mean(torch.stack([self.model(source_embed.to(self.device), neg_embed.to(self.device)) for neg_embed in neg_embeds]), dim=0)
-            loss = PairwiseRankingLoss(pos, neg)
 
+            if isinstance(self.model, FashionMLP):
+                source_embed, pos_embed, neg_embeds = batch
+                pos = self.model(source_embed.to(self.device), pos_embed.to(self.device))
+                # (batch_size, negative sample size, 1) to (negative sample size, 1)
+                neg = torch.mean(torch.stack([self.model(source_embed.to(self.device), neg_embed.to(self.device)) for neg_embed in neg_embeds]), dim=0) 
+                loss = PairwiseRankingLoss(pos, neg)
+            elif isinstance(self.model, FashionSIAMESE):
+                source_embed, pos_embed, neg_embed, source_embed_sim, pos_embed_sim, neg_embed_sim = batch
+                loss = TripletLoss(source_embed, pos_embed, neg_embed) + TripletLoss(source_embed_sim, pos_embed_sim, neg_embed_sim)
+            else:
+                raise ValueError("Unknown Model type")
+            
             loss.backward()
             self.optimizer.step()
             self.scheduler.step()
@@ -52,27 +62,38 @@ class Trainer:
             losses += loss.item()
             epoch_iterator.set_description(
                 'Train | Epoch: {:03}/{:03} | loss: {:.5f}'.format(epoch + 1, self.TrainingArgs.n_epochs, losses / iter)
-                ) 
+                )
+
         return losses / iter
 
 
     @torch.no_grad()
     def _validate(self, dataloader, epoch):
         self.model.eval()
-        epoch_iterator = tqdm(dataloader)
-        losses = 0.0
-        for iter, batch in enumerate(epoch_iterator, start=1):
-            source_embed, pos_embed, neg_embeds = batch
-            pos = self.model(source_embed.to(self.device), pos_embed.to(self.device))
-            neg = torch.mean(torch.stack([self.model(source_embed.to(self.device), neg_embed.to(self.device)) for neg_embed in neg_embeds]), dim=0)
-            loss = PairwiseRankingLoss(pos, neg)
-            
-            losses += loss.item()
-            epoch_iterator.set_description(
-                'Validation | Epoch: {:03}/{:03} | loss: {:.5f}'.format(epoch + 1, self.TrainingArgs.n_epochs, losses / iter)
-                )
-        return losses / iter
 
+        epoch_iterator = tqdm(dataloader)
+
+        losses = 0.0
+
+        for iter, batch in enumerate(epoch_iterator, start=1):
+            if isinstance(self.model, FashionMLP):
+                source_embed, pos_embed, neg_embeds = batch
+                pos = self.model(source_embed.to(self.device), pos_embed.to(self.device))
+                neg = torch.mean(torch.stack([self.model(source_embed.to(self.device), neg_embed.to(self.device)) for neg_embed in neg_embeds]), dim=0)
+                loss = PairwiseRankingLoss(pos, neg)
+            elif isinstance(self.model, FashionSIAMESE):
+                source_embed, pos_embed, neg_embed, source_embed_sim, pos_embed_sim, neg_embed_sim = batch
+                loss = TripletLoss(source_embed, pos_embed, neg_embed) + TripletLoss(source_embed_sim, pos_embed_sim, neg_embed_sim)
+            else:
+                raise ValueError("Unknown Model type")
+
+            losses += loss.item()
+
+            epoch_iterator.set_description(
+                'Valid | Epoch: {:03}/{:03} | loss: {:.5f}'.format(epoch + 1, self.TrainingArgs.n_epochs, losses / iter)
+                )
+
+        return losses / iter
 
     def save(self, model_path, model_name, best_model: bool=True):
         model_path = os.path.join(model_path, f'{model_name}.pth')
