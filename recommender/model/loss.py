@@ -9,3 +9,5 @@ def PairwiseRankingLoss(pos, neg):
 
 def TripletLoss(pos_top_embed, pos_bottom_embed, neg_bottom_embed):
     return TripletMarginLoss()(pos_top_embed, pos_bottom_embed, neg_bottom_embed)
+
+# test for commiting via vs code
