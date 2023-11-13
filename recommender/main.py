@@ -29,7 +29,7 @@ class ModelArgs:
 def main():
     device = torch.device('cuda') if (TrainingArgs.device == 'cuda') & (torch.cuda.is_available()) else torch.device('cpu')
 
-    train_dataset, test_dataset = get_dataset()
+    train_dataset, test_dataset = get_dataset(model_type='MLP')
     train_dataset, valid_dataset = random_split(train_dataset, [0.9, 0.1])
 
     train_dataloader = DataLoader(train_dataset, TrainingArgs.n_batch, shuffle=True)

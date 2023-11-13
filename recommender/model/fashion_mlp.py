@@ -51,6 +51,6 @@ class FashionSIAMESE(nn.Module):
 
     def forward(self, x, y, z):
         anc = self.top(self.model(x))
-        pos = self.top(self.model(y))
+        pos = self.bottom(self.model(y))
         neg = self.bottom(self.model(z))
         return anc, pos, neg

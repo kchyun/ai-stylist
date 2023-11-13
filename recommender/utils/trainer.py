@@ -51,7 +51,9 @@ class Trainer:
                 loss = PairwiseRankingLoss(pos, neg)
             elif isinstance(self.model, FashionSIAMESE):
                 source_embed, pos_embed, neg_embed, source_embed_sim, pos_embed_sim, neg_embed_sim = batch
-                loss = TripletLoss(source_embed, pos_embed, neg_embed) + TripletLoss(source_embed_sim, pos_embed_sim, neg_embed_sim)
+                anc, pos, neg = self.model(source_embed.to(self.device), pos_embed.to(self.device), neg_embed.to(self.device))
+                anc_sim, pos_sim, neg_sim = self.model(source_embed_sim.to(self.device), pos_embed_sim.to(self.device), neg_embed_sim.to(self.device))
+                loss = TripletLoss(anc, pos, neg) + TripletLoss(anc_sim, pos_sim, neg_sim)
             else:
                 raise ValueError("Unknown Model type")
             
@@ -83,7 +85,9 @@ class Trainer:
                 loss = PairwiseRankingLoss(pos, neg)
             elif isinstance(self.model, FashionSIAMESE):
                 source_embed, pos_embed, neg_embed, source_embed_sim, pos_embed_sim, neg_embed_sim = batch
-                loss = TripletLoss(source_embed, pos_embed, neg_embed) + TripletLoss(source_embed_sim, pos_embed_sim, neg_embed_sim)
+                anc, pos, neg = self.model(source_embed.to(self.device), pos_embed.to(self.device), neg_embed.to(self.device))
+                anc_sim, pos_sim, neg_sim = self.model(source_embed_sim.to(self.device), pos_embed_sim.to(self.device), neg_embed_sim.to(self.device))
+                loss = TripletLoss(anc, pos, neg) + TripletLoss(anc_sim, pos_sim, neg_sim)
             else:
                 raise ValueError("Unknown Model type")
 
