@@ -39,9 +39,9 @@ def main():
     optimizer = Adam(model.parameters(), lr=TrainingArgs.learning_rate)
     scheduler = lr_scheduler.StepLR(optimizer, step_size = 100, gamma=0.9)
 
-    style_model = None
+    style_classifier = None
     
-    trainer = Trainer(model, train_dataloader, valid_dataloader, optimizer=optimizer, scheduler=scheduler, style_model=style_model, device=device, TrainingArgs=TrainingArgs)
+    trainer = Trainer(model, train_dataloader, valid_dataloader, optimizer=optimizer, scheduler=scheduler, style_classifier=style_classifier, device=device, args=TrainingArgs)
 
     trainer.train()
     trainer.save(MODEL_PATH, MODEL_NAME) 
