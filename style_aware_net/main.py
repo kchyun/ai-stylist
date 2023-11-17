@@ -6,12 +6,13 @@ from torch.optim import Adam, lr_scheduler
 from torch.utils.data import DataLoader, random_split
 
 from model.style_aware_net import *
+from model.style_classifier import *
 from utils.trainer import Trainer
 from utils.data import get_dataset
 from dataclasses import dataclass
 
 LOAD_PATH = 0
-MODEL_PATH = 'C:/Users/owj04/Desktop/Projects/ai-stylist/recommender/model'
+MODEL_PATH = './'
 MODEL_NAME = 'tmp'
 
 @dataclass
@@ -21,16 +22,19 @@ class TrainingArgs:
     learning_rate: float=0.0001
     device: str='cuda'
 
+
 model_args = ModelArgs(
     n_conditions = 10
 )
+
+styles = ["formal and modern", "sports", "casual", "ethnic and hippie", "hip-hop", "preppy", 'feminine']
 
 
 def main():
     device = torch.device('cuda') if (TrainingArgs.device == 'cuda') & (torch.cuda.is_available()) else torch.device('cpu')
 
-    train_dataset, test_dataset = get_dataset(model_type='MLP')
-    train_dataset, valid_dataset = random_split(train_dataset, [0.9, 0.1])
+    train_dataset, valid_dataset, test_dataset = get_dataset()
+    # train_dataset, valid_dataset = random_split(train_dataset, [0.9, 0.1])
 
     train_dataloader = DataLoader(train_dataset, TrainingArgs.n_batch, shuffle=True)
     valid_dataloader = DataLoader(valid_dataset, TrainingArgs.n_batch, shuffle=False)
@@ -39,7 +43,7 @@ def main():
     optimizer = Adam(model.parameters(), lr=TrainingArgs.learning_rate)
     scheduler = lr_scheduler.StepLR(optimizer, step_size = 100, gamma=0.9)
 
-    style_classifier = None
+    style_classifier = StyleClassifier(styles=styles)
     
     trainer = Trainer(model, train_dataloader, valid_dataloader, optimizer=optimizer, scheduler=scheduler, style_classifier=style_classifier, device=device, args=TrainingArgs)
 
