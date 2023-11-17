@@ -13,12 +13,14 @@ from typing import Optional, Dict, List, Set, Tuple
 
 from copy import deepcopy
 
-TRAIN_PAIRS_PATH = 'F:/Projects/ai-stylist/data/polyvore_cleaned/train.json'
-VALID_PAIRS_PATH = 'F:/Projects/ai-stylist/data/polyvore_cleaned/valid.json'
-TEST_PAIRS_PATH = 'F:/Projects/ai-stylist/data/polyvore_cleaned/test.json'
+BASE_PATH = 'C:/KU/ai-stylist/ai-stylist'
 
-TOP_EMBEDS_PATH = 'F:/Projects/ai-stylist/data/polyvore_cleaned/top_embeds.json'
-BOTTOM_EMBEDS_PATH = 'F:/Projects/ai-stylist/data/polyvore_cleaned/bottom_embeds.json'
+TRAIN_PAIRS_PATH = f'{BASE_PATH}/data/polyvore_cleaned/train.json'
+VALID_PAIRS_PATH = f'{BASE_PATH}/data/polyvore_cleaned/valid.json'
+TEST_PAIRS_PATH = f'{BASE_PATH}/data/polyvore_cleaned/test.json'
+
+TOP_EMBEDS_PATH = f'{BASE_PATH}/data/polyvore_cleaned/top_embeds.json'
+BOTTOM_EMBEDS_PATH = f'{BASE_PATH}/data/polyvore_cleaned/bottom_embeds.json'
 
 class StyleAwareNetDataset(Dataset):
     def __init__(
@@ -33,7 +35,7 @@ class StyleAwareNetDataset(Dataset):
         
         
     def __len__(self):
-        return len(self.ancs)
+        return len(self.anc_ids)
     
 
     def __getitem__(self, idx):
