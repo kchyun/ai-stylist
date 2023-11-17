@@ -7,7 +7,7 @@ import os
 from process import load_seg_model, get_palette, generate_mask
     
 
-def preprocess_image(args, model, image, image_id, device):
+def preprocess_image(args, style, model, image, image_id, device):
     
     palette = get_palette(4)
     alpha_masks, cloth_seg = generate_mask(image, net=model, palette=palette, device=device)
@@ -21,7 +21,7 @@ def preprocess_image(args, model, image, image_id, device):
         if not os.path.exists(save_path):
             os.mkdir(save_path)
     
-    save_image(results, image_id, category, args.save_path)
+    save_image(results, image_id, category, os.path.join(args.save_path, style))
 
     
 def apply_masking_and_centering(image, alpha_masks, cloth_seg):
@@ -83,5 +83,5 @@ if __name__ == "__main__":
         image = Image.open(os.path.join(args.input_path, t)).convert('RGB')
         image_id = os.path.splitext(os.path.basename(t))[0]
         print(image_id)
-        preprocess_image(args, model, image, image_id, device)
+        preprocess_image(args, "", model, image, image_id, device)
     
