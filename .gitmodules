@@ -1,0 +1,3 @@
+[submodule "preprocess-clothes"]
+	path = preprocess-clothes
+	url = https://github.com/kchyun/preprocess-clothes.git
