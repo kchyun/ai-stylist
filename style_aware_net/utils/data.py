@@ -13,7 +13,7 @@ from typing import Optional, Dict, List, Set, Tuple
 
 from copy import deepcopy
 
-BASE_PATH = 'F:/Projects/ai-stylist'
+BASE_PATH = 'C:/KU/ai-stylist/ai-stylist'
 
 TRAIN_PAIRS_PATH = f'{BASE_PATH}/data/polyvore_cleaned/train.json'
 VALID_PAIRS_PATH = f'{BASE_PATH}/data/polyvore_cleaned/valid.json'
@@ -44,9 +44,9 @@ class StyleAwareNetDataset(Dataset):
         pos_id = random.choice(self.pos_df.loc[anc_id]['bottom_id'])
         neg_id = self._get_neg_sample(anc_id)
 
-        anc = self.top_embeds.loc[anc_id]['embed']
-        pos = self.bottom_embeds.loc[pos_id]['embed']
-        neg = self.bottom_embeds.loc[neg_id]['embed']
+        anc = torch.Tensor(self.top_embeds.loc[anc_id]['embed'])
+        pos = torch.Tensor(self.bottom_embeds.loc[pos_id]['embed'])
+        neg = torch.Tensor(self.bottom_embeds.loc[neg_id]['embed'])
         return anc, pos, neg
     
 
