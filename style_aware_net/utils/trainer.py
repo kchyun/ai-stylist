@@ -42,11 +42,11 @@ class Trainer:
             self.optimizer.zero_grad()
 
             anc, pos, neg = batch
-            style_type = self.style_classifier.forward(anc, pos)
+            style_type = self.style_classifier.forward(anc, pos).to(self.device)
 
-            anc_proj = self.model(anc.to(self.device), style_type)
-            pos_proj = self.model(pos.to(self.device), style_type)
-            neg_proj = self.model(neg.to(self.device), style_type)
+            _, anc_proj = self.model(anc.to(self.device), style_type)
+            _, pos_proj = self.model(pos.to(self.device), style_type)
+            _, neg_proj = self.model(neg.to(self.device), style_type)
 
             loss = TripletLoss(anc_proj, pos_proj, neg_proj)
 
