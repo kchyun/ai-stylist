@@ -13,7 +13,7 @@ from typing import Optional, Dict, List, Set, Tuple
 
 from copy import deepcopy
 
-BASE_PATH = 'C:/KU/ai-stylist/ai-stylist'
+BASE_PATH = 'F:/Projects/ai-stylist'
 
 TRAIN_PAIRS_PATH = f'{BASE_PATH}/data/polyvore_cleaned/train.json'
 VALID_PAIRS_PATH = f'{BASE_PATH}/data/polyvore_cleaned/valid.json'
@@ -28,10 +28,11 @@ class StyleAwareNetDataset(Dataset):
         path,
         ):
         super(StyleAwareNetDataset, self).__init__()
-        self.pos_df, self.neg_df = self._preprocess_pairs(path)
-        self.anc_ids = self.pos_df.index
         self.top_embeds = self._preprocess_embeds(TOP_EMBEDS_PATH)
         self.bottom_embeds = self._preprocess_embeds(BOTTOM_EMBEDS_PATH)
+
+        self.anc_ids, self.pos_df = self._preprocess_pairs(path)
+        
         
         
     def __len__(self):
@@ -40,9 +41,8 @@ class StyleAwareNetDataset(Dataset):
 
     def __getitem__(self, idx):
         anc_id = self.anc_ids[idx]
-
         pos_id = random.choice(self.pos_df.loc[anc_id]['bottom_id'])
-        neg_id = random.choice(self.neg_df.loc[anc_id]['bottom_id'])
+        neg_id = self._get_neg_sample(anc_id)
 
         anc = self.top_embeds.loc[anc_id]['embed']
         pos = self.bottom_embeds.loc[pos_id]['embed']
@@ -51,11 +51,19 @@ class StyleAwareNetDataset(Dataset):
     
 
     def _preprocess_pairs(self, path):
-        df = pd.read_json(path).groupby(['top_id', 'y']).agg({'bottom_id' : list})
+        df = pd.read_json(path)\
+            .drop_duplicates(subset=['top_id', 'bottom_id'])\
+            .groupby(['top_id', 'y'])\
+            .agg({'bottom_id' : list})
         pos_df = df.xs(1, level='y')
-        neg_df = df.xs(0, level='y')
-        return pos_df, neg_df
-        
+        anc_ids = pos_df.index
+        return anc_ids, pos_df
+    
+    def _get_neg_sample(self, anc_id):
+        neg_id = random.choice(self.bottom_embeds.index)
+        while neg_id in self.pos_df.loc[anc_id]:
+            neg_id = random.choice(self.bottom_embeds.index)
+        return neg_id
 
     def _preprocess_embeds(self, path):
         return pd.read_json(path)
@@ -69,3 +77,4 @@ def get_dataset():
 
 if __name__ == '__main__':
     t, v, test = get_dataset()
+    print(len(t[0]))

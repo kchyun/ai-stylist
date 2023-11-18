@@ -1,5 +1,5 @@
 import sys
-sys.path.append('c:/KU/ai-stylist/ai-stylist/')
+sys.path.append('F:/Projects/ai-stylist')
 
 from embed_generator.generator import *
 import torch

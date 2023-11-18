@@ -42,7 +42,7 @@ class Trainer:
             self.optimizer.zero_grad()
 
             anc, pos, neg = batch
-            style_type = self.style_classifier(anc, pos)
+            style_type = self.style_classifier.forward(anc, pos)
 
             anc_proj = self.model(anc.to(self.device), style_type)
             pos_proj = self.model(pos.to(self.device), style_type)
@@ -68,7 +68,7 @@ class Trainer:
         losses = 0.0
         for iter, batch in enumerate(epoch_iterator, start=1):
             anc, pos, neg = batch
-            style_type = self.style_classifier(anc, pos)
+            style_type = self.style_classifier.forward(anc, pos)
 
             anc_proj = self.model(anc.to(self.device), style_type)
             pos_proj = self.model(pos.to(self.device), style_type)
