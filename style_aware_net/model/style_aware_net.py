@@ -41,6 +41,6 @@ class StyleAwareNet(nn.Module):
             s: Style type of input images
         '''
         comp_embed = self.bottleneck_layer(x) # CLIP 임베딩을 차원 축소한 것
-        mask = self.masks[torch.Tensor(s)]
+        mask = self.masks(s)
         proj_embed = comp_embed * mask
         return comp_embed, proj_embed
