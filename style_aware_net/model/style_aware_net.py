@@ -8,8 +8,8 @@ from typing import List
 @ dataclass
 class ModelArgs:
     src_embed_dim: int  = 512
-    tgt_embed_dim: int = 32
-    n_conditions: int=16
+    tgt_embed_dim: int = 64
+    n_conditions: int=7
 
 class StyleAwareNet(nn.Module):
     def __init__(
@@ -22,9 +22,16 @@ class StyleAwareNet(nn.Module):
         self.n_conditions = args.n_conditions
 
         self.bottleneck_layer = nn.Sequential(
-            nn.Linear(self.src_embed_dim, self.src_embed_dim),
-            nn.ReLU(),
-            nn.Linear(self.src_embed_dim, self.tgt_embed_dim)
+            nn.Linear(self.src_embed_dim, self.src_embed_dim // 2),
+            nn.BatchNorm1d(self.src_embed_dim // 2),
+            nn.Hardtanh(),
+            nn.Linear(self.src_embed_dim // 2, self.src_embed_dim // 2),
+            nn.BatchNorm1d(self.src_embed_dim // 2),
+            nn.Hardtanh(),
+            nn.Linear(self.src_embed_dim // 2, self.src_embed_dim // 2),
+            nn.BatchNorm1d(self.src_embed_dim // 2),
+            nn.Hardtanh(),
+            nn.Linear(self.src_embed_dim // 2, self.tgt_embed_dim),
             )
         
         # masks = []
@@ -36,11 +43,11 @@ class StyleAwareNet(nn.Module):
         self.masks.weight.data.normal_(0.9, 0.7) # 0.1, 0.005
 
 
-    def forward(self, x: Tensor, s: List[int]):
+    def forward(self, x: Tensor, s: Tensor):
         ''' x: Embedding of input images
             s: Style type of input images
         '''
         comp_embed = self.bottleneck_layer(x) # CLIP 임베딩을 차원 축소한 것
-        mask = self.masks[torch.Tensor(s)]
+        mask = self.masks(s)
         proj_embed = comp_embed * mask
         return comp_embed, proj_embed

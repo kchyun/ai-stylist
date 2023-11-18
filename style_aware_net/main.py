@@ -7,24 +7,26 @@ from torch.utils.data import DataLoader, random_split
 
 from model.style_aware_net import *
 from model.style_classifier import *
+sys.path.append(os.path.dirname(os.path.abspath(os.path.dirname(__file__))))
+from embed_generator.generator import *
 from utils.trainer import Trainer
 from utils.data import get_dataset
 from dataclasses import dataclass
 
 LOAD_PATH = 0
-MODEL_PATH = './'
+MODEL_PATH = '.'
 MODEL_NAME = 'tmp'
 
 @dataclass
 class TrainingArgs:
-    n_batch: int=256
-    n_epochs: int=18
+    n_batch: int=1024
+    n_epochs: int=15
     learning_rate: float=0.0001
     device: str='cuda'
 
 
 model_args = ModelArgs(
-    n_conditions = 10
+    n_conditions = 7
 )
 
 styles = ["formal and modern", "sports", "casual", "ethnic and hippie", "hip-hop", "preppy", 'feminine']
@@ -43,7 +45,8 @@ def main():
     optimizer = Adam(model.parameters(), lr=TrainingArgs.learning_rate)
     scheduler = lr_scheduler.StepLR(optimizer, step_size = 100, gamma=0.9)
 
-    style_classifier = StyleClassifier(styles=styles)
+    embed_generator = FashionEmbeddingGenerator()
+    style_classifier = StyleClassifier(embed_generator=embed_generator, styles=styles)
     
     trainer = Trainer(model, train_dataloader, valid_dataloader, optimizer=optimizer, scheduler=scheduler, style_classifier=style_classifier, device=device, args=TrainingArgs)
 

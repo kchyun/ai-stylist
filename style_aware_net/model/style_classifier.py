@@ -1,17 +1,16 @@
 import sys
-sys.path.append('C:/KU/ai-stylist/ai-stylist')
-
 from torchmetrics.functional import pairwise_cosine_similarity
-from embed_generator.generator import *
 import torch
+from typing import List
 
 class StyleClassifier():
     def __init__(self, 
+                 embed_generator,
                  styles: List[str]):
         
         self.styles = styles
-        self.model = FashionEmbeddingGenerator()
-        self.prompt_embeddings = torch.stack([torch.Tensor(self.model.text2embed("a photo of {} style clothes".format(s))) for s in styles])
+        self.embed_generator = embed_generator
+        self.prompt_embeddings = torch.stack([torch.Tensor(self.embed_generator.text2embed("a photo of {} style clothes".format(s))) for s in styles])
         
     def forward(self, anc, pos):
         

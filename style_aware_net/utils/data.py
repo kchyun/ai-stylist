@@ -1,3 +1,4 @@
+import os
 import json
 import random
 from collections import OrderedDict, defaultdict
@@ -13,14 +14,14 @@ from typing import Optional, Dict, List, Set, Tuple
 
 from copy import deepcopy
 
-BASE_PATH = 'C:/KU/ai-stylist/ai-stylist'
+BASE_PATH = os.path.dirname(os.path.abspath(os.path.dirname(os.path.abspath(os.path.dirname(__file__)))))
 
-TRAIN_PAIRS_PATH = f'{BASE_PATH}/data/polyvore_cleaned/train.json'
-VALID_PAIRS_PATH = f'{BASE_PATH}/data/polyvore_cleaned/valid.json'
-TEST_PAIRS_PATH = f'{BASE_PATH}/data/polyvore_cleaned/test.json'
+TRAIN_PAIRS_PATH = BASE_PATH + '/data/polyvore_cleaned/train.json'
+VALID_PAIRS_PATH = BASE_PATH + '/data/polyvore_cleaned/valid.json'
+TEST_PAIRS_PATH = BASE_PATH + '/data/polyvore_cleaned/test.json'
 
-TOP_EMBEDS_PATH = f'{BASE_PATH}/data/polyvore_cleaned/top_embeds.json'
-BOTTOM_EMBEDS_PATH = f'{BASE_PATH}/data/polyvore_cleaned/bottom_embeds.json'
+TOP_EMBEDS_PATH = BASE_PATH + '/data/polyvore_cleaned/top_embeds.json'
+BOTTOM_EMBEDS_PATH = BASE_PATH + '/data/polyvore_cleaned/bottom_embeds.json'
 
 class StyleAwareNetDataset(Dataset):
     def __init__(
