@@ -41,15 +41,24 @@ class Trainer:
         for iter, batch in enumerate(epoch_iterator, start=1):
             self.optimizer.zero_grad()
 
-            anc, pos, neg = batch
-            style_type = self.style_classifier.forward(anc, pos)
-            style_type = torch.Tensor(style_type).to(self.device)
+            anc, pos, negs = batch
 
-            _, anc_proj = self.model(anc.to(self.device), style_type)
-            _, pos_proj = self.model(pos.to(self.device), style_type)
-            _, neg_proj = self.model(neg.to(self.device), style_type)
+            loss_weight = self.style_classifier.forward(anc, pos)
+            loss_weight = loss_weight.to(self.device)
 
-            loss = TripletLoss(anc_proj, pos_proj, neg_proj)
+            anc_projs = self.model(anc.to(self.device))
+            pos_projs = self.model(pos.to(self.device))
+            # Shape of negs: B, N_S, D
+            # (B*N_S, D)
+            negsv = negs.view(-1, negs.shape[-1])
+            # N_C * (B*N_S, E)
+            neg_projs = self.model(negsv.to(self.device))
+            # N_C * (B, N_S, E)
+            neg_projs = [neg_proj.view(negs.shape[0], negs.shape[1], -1) for neg_proj in neg_projs]
+            # N_C * (B, E)
+            neg_projs = [torch.mean(neg_proj, dim=1) for neg_proj in neg_projs]
+
+            loss = TripletLoss(anc_projs, pos_projs, neg_projs, loss_weight)
 
             loss.backward()
             self.optimizer.step()
@@ -68,15 +77,25 @@ class Trainer:
         epoch_iterator = tqdm(dataloader)
         losses = 0.0
         for iter, batch in enumerate(epoch_iterator, start=1):
-            anc, pos, neg = batch
-            style_type = self.style_classifier.forward(anc, pos)
-            style_type = torch.Tensor(style_type).to(self.device)
 
-            _, anc_proj = self.model(anc.to(self.device), style_type)
-            _, pos_proj = self.model(pos.to(self.device), style_type)
-            _, neg_proj = self.model(neg.to(self.device), style_type)
+            anc, pos, negs = batch
 
-            loss = TripletLoss(anc_proj, pos_proj, neg_proj)
+            loss_weight = self.style_classifier.forward(anc, pos)
+            loss_weight = loss_weight.to(self.device)
+
+            anc_projs = self.model(anc.to(self.device))
+            pos_projs = self.model(pos.to(self.device))
+            # Shape of negs: B, N_S, D
+            # (B*N_S, D)
+            negsv = negs.view(-1, negs.shape[-1])
+            # N_C * (B*N_S, E)
+            neg_projs = self.model(negsv.to(self.device))
+            # N_C * (B, N_S, E)
+            neg_projs = [neg_proj.view(negs.shape[0], negs.shape[1], -1) for neg_proj in neg_projs]
+            # N_C * (B, E)
+            neg_projs = [torch.mean(neg_proj, dim=1) for neg_proj in neg_projs]
+
+            loss = TripletLoss(anc_projs, pos_projs, neg_projs, loss_weight)
             
             losses += loss.item()
 

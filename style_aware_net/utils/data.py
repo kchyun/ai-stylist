@@ -31,10 +31,7 @@ class StyleAwareNetDataset(Dataset):
         super(StyleAwareNetDataset, self).__init__()
         self.top_embeds = self._preprocess_embeds(TOP_EMBEDS_PATH)
         self.bottom_embeds = self._preprocess_embeds(BOTTOM_EMBEDS_PATH)
-
         self.anc_ids, self.pos_df = self._preprocess_pairs(path)
-        
-        
         
     def __len__(self):
         return len(self.anc_ids)
@@ -43,12 +40,12 @@ class StyleAwareNetDataset(Dataset):
     def __getitem__(self, idx):
         anc_id = self.anc_ids[idx]
         pos_id = random.choice(self.pos_df.loc[anc_id]['bottom_id'])
-        neg_id = self._get_neg_sample(anc_id)
+        neg_ids = self._get_neg_sample(anc_id, n=10)
 
         anc = torch.Tensor(self.top_embeds.loc[anc_id]['embed'])
         pos = torch.Tensor(self.bottom_embeds.loc[pos_id]['embed'])
-        neg = torch.Tensor(self.bottom_embeds.loc[neg_id]['embed'])
-        return anc, pos, neg
+        negs = torch.stack([torch.Tensor(self.bottom_embeds.loc[neg_id]['embed']) for neg_id in neg_ids])
+        return anc, pos, negs
     
 
     def _preprocess_pairs(self, path):
@@ -60,11 +57,14 @@ class StyleAwareNetDataset(Dataset):
         anc_ids = pos_df.index
         return anc_ids, pos_df
     
-    def _get_neg_sample(self, anc_id):
-        neg_id = random.choice(self.bottom_embeds.index)
-        while neg_id in self.pos_df.loc[anc_id]:
-            neg_id = random.choice(self.bottom_embeds.index)
-        return neg_id
+    def _get_neg_sample(self, anc_id, n=64):
+        crit = set(self.pos_df.loc[anc_id]['bottom_id'])
+        neg_ids = set()
+        while len(neg_ids) < n:
+            tmp = random.choice(self.bottom_embeds.index)
+            if tmp not in crit:
+                neg_ids.add(tmp)
+        return list(neg_ids)
 
     def _preprocess_embeds(self, path):
         return pd.read_json(path)

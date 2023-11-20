@@ -15,12 +15,12 @@ from dataclasses import dataclass
 
 LOAD_PATH = 0
 MODEL_PATH = '.'
-MODEL_NAME = 'tmp'
+MODEL_NAME = '20231119'
 
 @dataclass
 class TrainingArgs:
-    n_batch: int=1024
-    n_epochs: int=15
+    n_batch: int=512
+    n_epochs: int=10
     learning_rate: float=0.0001
     device: str='cuda'
 
@@ -29,14 +29,19 @@ model_args = ModelArgs(
     n_conditions = 7
 )
 
-styles = ["formal and modern", "sports", "casual", "ethnic and hippie", "hip-hop", "preppy", 'feminine']
+styles = ["formal, dandy and minimal",
+          "athletic and sports",
+          "casual and classic", 
+          "ethnic, hippie and maximalism", 
+          "hip-hop, street and gangster", 
+          "preppy and classic", 
+          "feminine and girlish"]
 
 
 def main():
     device = torch.device('cuda') if (TrainingArgs.device == 'cuda') & (torch.cuda.is_available()) else torch.device('cpu')
 
     train_dataset, valid_dataset, test_dataset = get_dataset()
-    # train_dataset, valid_dataset = random_split(train_dataset, [0.9, 0.1])
 
     train_dataloader = DataLoader(train_dataset, TrainingArgs.n_batch, shuffle=True)
     valid_dataloader = DataLoader(valid_dataset, TrainingArgs.n_batch, shuffle=False)
