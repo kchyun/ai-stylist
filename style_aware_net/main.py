@@ -5,6 +5,8 @@ import torch
 from torch.optim import Adam, lr_scheduler
 from torch.utils.data import DataLoader, random_split
 
+import albumentations as A
+
 from model.style_aware_net import *
 from model.style_classifier import *
 sys.path.append(os.path.dirname(os.path.abspath(os.path.dirname(__file__))))
@@ -14,15 +16,17 @@ from utils.data import get_dataset
 from dataclasses import dataclass
 
 LOAD_PATH = 0
-MODEL_PATH = '.'
-MODEL_NAME = '20231119'
+
+MODEL_NAME = 'Final'
 
 @dataclass
 class TrainingArgs:
-    n_batch: int=512
-    n_epochs: int=10
+    n_batch: int=32
+    n_epochs: int=5
     learning_rate: float=0.0001
     device: str='cuda'
+    save_every: int=1
+    save_path: str = 'F:/Projects/ai-stylist/style_aware_net/model/saved_model'
 
 
 model_args = ModelArgs(
@@ -41,7 +45,13 @@ styles = ["formal, dandy and minimal",
 def main():
     device = torch.device('cuda') if (TrainingArgs.device == 'cuda') & (torch.cuda.is_available()) else torch.device('cpu')
 
-    train_dataset, valid_dataset, test_dataset = get_dataset()
+    transform = A.Compose([
+        A.HorizontalFlip(),
+        A.Rotate(limit=15),
+        A.ColorJitter(brightness=0.2, contrast=0.2, saturation=0.2, hue=0.05, p=0.5),
+        ])
+    
+    train_dataset, valid_dataset = get_dataset(transform)
 
     train_dataloader = DataLoader(train_dataset, TrainingArgs.n_batch, shuffle=True)
     valid_dataloader = DataLoader(valid_dataset, TrainingArgs.n_batch, shuffle=False)
@@ -53,10 +63,19 @@ def main():
     embed_generator = FashionEmbeddingGenerator()
     style_classifier = StyleClassifier(embed_generator=embed_generator, styles=styles)
     
-    trainer = Trainer(model, train_dataloader, valid_dataloader, optimizer=optimizer, scheduler=scheduler, style_classifier=style_classifier, device=device, args=TrainingArgs)
+    args = TrainingArgs()
+    trainer = Trainer(
+        model,
+        train_dataloader,
+        valid_dataloader,
+        optimizer=optimizer,
+        scheduler=scheduler,
+        style_classifier=style_classifier,
+        device=device,
+        args=args)
 
     trainer.train()
-    trainer.save(MODEL_PATH, MODEL_NAME) 
+    trainer.save(args.save_path, MODEL_NAME) 
 
 
 if __name__ == '__main__':
