@@ -28,10 +28,10 @@ class StyleAwareNetDataset(Dataset):
             'train.json' if is_train else 'valid.json')
         self.top_ids_path = os.path.join(
             rootdir, 'data', 'polyvore_cleaned',
-            'top_ids.json')
+            'top_embeds.json')
         self.bottom_ids_path = os.path.join(
             rootdir, 'data', 'polyvore_cleaned',
-            'bottom_ids.json')
+            'bottom_embeds.json')
         self.img_path = os.path.join(
             rootdir, 'data', 'polyvore_outfits', 'images')
 
