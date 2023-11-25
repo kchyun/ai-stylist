@@ -10,7 +10,8 @@ class StyleClassifier():
         
         self.styles = styles
         self.embed_generator = embed_generator
-        self.prompt_embeddings = torch.stack([torch.Tensor(self.embed_generator.text2embed("a photo of {} style clothes".format(s))) for s in styles])
+        # self.prompt_embeddings = torch.stack([torch.Tensor(self.embed_generator.text2embed("a photo of {} style clothes".format(s))) for s in styles])
+        self.prompt_embeddings = torch.stack([torch.Tensor(self.embed_generator.text2embed("a photo of clothes suitable for {}".format(s))) for s in styles])
     
     @torch.no_grad()
     def forward(self, anc, pos, device):
