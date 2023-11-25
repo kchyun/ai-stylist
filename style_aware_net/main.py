@@ -26,20 +26,33 @@ class TrainingArgs:
     learning_rate: float=0.0001
     device: str='cuda'
     save_every: int=1
-    save_path: str = 'F:/Projects/ai-stylist/style_aware_net/model/saved_model'
+    save_path: str = 'C:/KU/ai-stylist/ai-stylist/style_aware_net/model/saved_model'
 
 
 model_args = ModelArgs(
     n_conditions = 7
 )
 
-styles = ["formal, dandy and minimal",
-          "athletic and sports",
-          "casual and classic", 
-          "ethnic, hippie and maximalism", 
-          "hip-hop, street and gangster", 
-          "preppy and classic", 
-          "feminine and girlish"]
+# styles = ["formal, dandy and minimal",
+#           "athletic and sports",
+#           "casual and classic", 
+#           "ethnic, hippie and maximalism", 
+#           "hip-hop, street and gangster", 
+#           "preppy and classic", 
+#           "feminine and girlish"]
+
+styles = [
+    "wedding",
+    "casual date",
+    "party",
+    "workout and sports",
+    "funeral",
+    "trip",
+    "work and business",
+    "formal meeting",
+    "meeting friends",
+]
+
 
 
 def main():
