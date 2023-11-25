@@ -71,11 +71,10 @@ class Trainer:
             neg_embeds = self.embed_model(**neg_imgs.to(self.device)).image_embeds.detach()
             # N_C * (B*N_S, E)
             neg_projs = self.model(neg_embeds)
-            # N_C * (B, N_S, E)
-            neg_projs = [neg_proj.view(B, N_S, -1) for neg_proj in neg_projs]
-            # N_C * (B, E)
-            neg_projs = [torch.mean(neg_proj, dim=1) for neg_proj in neg_projs]
-
+            
+            neg_projs = neg_projs.view(neg_projs.shape[0], B, N_S, -1)
+            neg_projs = torch.mean(neg_projs, dim=2)
+             
             # loss 가중치 결정
             style_logits = self.style_classifier.forward(anc_embed, pos_embed, self.device)
             loss_weight = style_logits  # 뭐 어떤 threshold 혹은 기타 처리하자 나중에...

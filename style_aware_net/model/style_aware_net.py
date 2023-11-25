@@ -53,6 +53,6 @@ class StyleAwareNet(nn.Module):
                 mask = self.masks(torch.LongTensor([i]).cuda())
                 proj_embed = comp_embed * mask
                 proj_embeds.append(proj_embed)
-            return proj_embeds
+            return torch.stack([e for e in proj_embeds])
 
 
