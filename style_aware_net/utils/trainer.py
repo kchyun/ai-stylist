@@ -11,12 +11,6 @@ from transformers import  CLIPVisionModelWithProjection, CLIPProcessor
 
 class Trainer:
     def __init__(self, model, train_dataloader, valid_dataloader, optimizer, scheduler, style_classifier, device, args):
-        self.embed_model = CLIPVisionModelWithProjection.from_pretrained('patrickjohncyh/fashion-clip').to(device)
-        for param in self.embed_model.parameters():
-            param.requires_grad = False
-        self.embed_model.eval()
-        self.processor = CLIPProcessor.from_pretrained('patrickjohncyh/fashion-clip')
-
         self.model = model
         self.optimizer = optimizer
         self.train_dataloader = train_dataloader
@@ -29,6 +23,12 @@ class Trainer:
 
         self.best_model_state = None
         self.best_optimizer_state = None
+
+        self.embed_model = CLIPVisionModelWithProjection.from_pretrained('patrickjohncyh/fashion-clip').to(device)
+        for param in self.embed_model.parameters():
+            param.requires_grad = False
+        self.embed_model.eval()
+        self.processor = CLIPProcessor.from_pretrained('patrickjohncyh/fashion-clip')
 
     def train(self):
         lowest_loss = np.inf
@@ -51,7 +51,7 @@ class Trainer:
         for iter, batch in enumerate(epoch_iterator, start=1):
             self.optimizer.zero_grad()
 
-            anc_img, pos_img, neg_imgs = batch
+            anc_img, pos_img, neg_img, neg_random_imgs = batch
 
             anc_img = self.processor(images=anc_img, return_tensors="pt", padding=True)
             anc_embed = self.embed_model(**anc_img.to(self.device)).image_embeds.detach()
@@ -60,28 +60,31 @@ class Trainer:
             pos_img = self.processor(images=pos_img, return_tensors="pt", padding=True)
             pos_embed = self.embed_model(**pos_img.to(self.device)).image_embeds.detach()
             pos_projs = self.model(pos_embed)
-            
-            # Shape of negs: (B, N_S, H, W, C)
-            # (B*N_S, H, W, C)
-            B = neg_imgs.size(0)
-            N_S = neg_imgs.size(1)
-
-            neg_imgs = neg_imgs.view(-1, neg_imgs.size(2), neg_imgs.size(3), neg_imgs.size(4))
-            neg_imgs = self.processor(images=neg_imgs, return_tensors="pt", padding=True)
-            neg_embeds = self.embed_model(**neg_imgs.to(self.device)).image_embeds.detach()
-            # N_C * (B*N_S, E)
-            neg_projs = self.model(neg_embeds)
-            # N_C * (B, N_S, E)
-            neg_projs = [neg_proj.view(B, N_S, -1) for neg_proj in neg_projs]
-            # N_C * (B, E)
-            neg_projs = [torch.mean(neg_proj, dim=1) for neg_proj in neg_projs]
 
             # loss 가중치 결정
             style_logits = self.style_classifier.forward(anc_embed, pos_embed, self.device)
             loss_weight = style_logits  # 뭐 어떤 threshold 혹은 기타 처리하자 나중에...
             loss_weight = loss_weight.to(self.device)
+            
+            # Augment로 만든 샘플에 Loss구하기
+            neg_img = self.processor(images=neg_img, return_tensors="pt", padding=True)
+            neg_embed = self.embed_model(**neg_img.to(self.device)).image_embeds.detach()
+            neg_projs = self.model(neg_embed)
+            loss_neg = TripletLoss(anc_projs, pos_projs, neg_projs, loss_weight)
+            
+            # 랜덤 샘플에 대한 Loss구하기
+            B, N_S = neg_random_imgs.size(0), neg_random_imgs.size(1)
+            neg_random_imgs = neg_random_imgs.view(-1, neg_random_imgs.size(2), neg_random_imgs.size(3), neg_random_imgs.size(4)) # (B*N_S, H, W, C)
+            neg_random_imgs = self.processor(images=neg_random_imgs, return_tensors="pt", padding=True)
+            neg_random_embeds = self.embed_model(**neg_random_imgs.to(self.device)).image_embeds.detach() 
+            neg_random_projs = [
+                torch.mean(neg_random_proj.view(B, N_S, -1), dim=1) 
+                for neg_random_proj in self.model(neg_random_embeds) # N_C * (B, N_S, E) -> N_C * (B, E)
+                ] 
+            loss_random = TripletLoss(anc_projs, pos_projs, neg_random_projs, loss_weight)
 
-            loss = TripletLoss(anc_projs, pos_projs, neg_projs, loss_weight)
+            # Augment sample로 만든 Loss와 Random sample로 만든 Loss를 가중치합
+            loss = self.args.w_neg * loss_neg + self.args.w_random * loss_random
 
             loss.backward()
             self.optimizer.step()
@@ -100,7 +103,7 @@ class Trainer:
         epoch_iterator = tqdm(dataloader)
         losses = 0.0
         for iter, batch in enumerate(epoch_iterator, start=1):
-            anc_img, pos_img, neg_imgs = batch
+            anc_img, pos_img, neg_img, neg_random_imgs = batch
 
             anc_img = self.processor(images=anc_img, return_tensors="pt", padding=True)
             anc_embed = self.embed_model(**anc_img.to(self.device)).image_embeds.detach()
@@ -110,20 +113,30 @@ class Trainer:
             pos_embed = self.embed_model(**pos_img.to(self.device)).image_embeds.detach()
             pos_projs = self.model(pos_embed)
 
-            B = neg_imgs.size(0)
-            N_S = neg_imgs.size(1)
-            neg_imgs = neg_imgs.view(-1, neg_imgs.size(2), neg_imgs.size(3), neg_imgs.size(4))
-            neg_imgs = self.processor(images=neg_imgs, return_tensors="pt", padding=True)
-            neg_embeds = self.embed_model(**neg_imgs.to(self.device)).image_embeds.detach()
-            neg_projs = self.model(neg_embeds)
-            neg_projs = [neg_proj.view(B, N_S, -1) for neg_proj in neg_projs]
-            neg_projs = [torch.mean(neg_proj, dim=1) for neg_proj in neg_projs]
-
+            # loss 가중치 결정
             style_logits = self.style_classifier.forward(anc_embed, pos_embed, self.device)
-            loss_weight = style_logits
+            loss_weight = style_logits  # 뭐 어떤 threshold 혹은 기타 처리하자 나중에...
             loss_weight = loss_weight.to(self.device)
+            
+            # Augment로 만든 샘플에 Loss구하기
+            neg_img = self.processor(images=neg_img, return_tensors="pt", padding=True)
+            neg_embed = self.embed_model(**neg_img.to(self.device)).image_embeds.detach()
+            neg_projs = self.model(neg_embed)
+            loss_neg = TripletLoss(anc_projs, pos_projs, neg_projs, loss_weight)
+            
+            # 랜덤 샘플에 대한 Loss구하기
+            B, N_S = neg_random_imgs.size(0), neg_random_imgs.size(1)
+            neg_random_imgs = neg_random_imgs.view(-1, neg_random_imgs.size(2), neg_random_imgs.size(3), neg_random_imgs.size(4)) # (B*N_S, H, W, C)
+            neg_random_imgs = self.processor(images=neg_random_imgs, return_tensors="pt", padding=True)
+            neg_random_embeds = self.embed_model(**neg_random_imgs.to(self.device)).image_embeds.detach() 
+            neg_random_projs = [
+                torch.mean(neg_random_proj.view(B, N_S, -1), dim=1) 
+                for neg_random_proj in self.model(neg_random_embeds) # N_C * (B, N_S, E) -> N_C * (B, E)
+                ] 
+            loss_random = TripletLoss(anc_projs, pos_projs, neg_random_projs, loss_weight)
 
-            loss = TripletLoss(anc_projs, pos_projs, neg_projs, loss_weight)
+            # Augment sample로 만든 Loss와 Random sample로 만든 Loss를 가중치합
+            loss = self.args.w_neg * loss_neg + self.args.w_random * loss_random
             
             losses += loss.item()
 

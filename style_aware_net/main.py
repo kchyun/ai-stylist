@@ -26,20 +26,25 @@ class TrainingArgs:
     learning_rate: float=0.0001
     device: str='cuda'
     save_every: int=1
-    save_path: str = 'F:/Projects/ai-stylist/style_aware_net/model/saved_model'
+    save_path: str='F:/Projects/2023-ai-stylist/style_aware_net/model/saved_model'
+    w_neg: int=0.5
+    w_random: int=0.5
 
 
 model_args = ModelArgs(
     n_conditions = 7
 )
 
-styles = ["formal, dandy and minimal",
-          "athletic and sports",
-          "casual and classic", 
-          "ethnic, hippie and maximalism", 
-          "hip-hop, street and gangster", 
-          "preppy and classic", 
-          "feminine and girlish"]
+styles = [
+    "casual date",
+    "party",
+    "workout and sports",
+    "funeral",
+    "trip",
+    "work and business",
+    "formal meeting",
+    "meeting friends",
+]
 
 
 def main():
@@ -50,7 +55,7 @@ def main():
         A.Rotate(limit=15),
         A.ColorJitter(brightness=0.2, contrast=0.2, saturation=0.2, hue=0.05, p=0.5),
         ])
-    
+
     train_dataset, valid_dataset = get_dataset(transform)
 
     train_dataloader = DataLoader(train_dataset, TrainingArgs.n_batch, shuffle=True)
