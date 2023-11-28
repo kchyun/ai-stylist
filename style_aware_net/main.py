@@ -28,7 +28,7 @@ class TrainingArgs:
     save_every: int=1
     save_path: str='F:/Projects/2023-ai-stylist/style_aware_net/model/saved_model'
     w_neg: int=0.5
-    w_random: int=0.5
+    w_random: int=1
 
 
 model_args = ModelArgs(
@@ -60,7 +60,7 @@ def main():
 
     model = StyleAwareNet(model_args).to(device)
     optimizer = Adam(model.parameters(), lr=TrainingArgs.learning_rate)
-    scheduler = lr_scheduler.CosineAnnealingLR(optimizer, T_max=100, eta_min=0)
+    scheduler = lr_scheduler.CosineAnnealingLR(optimizer, T_max=1000, eta_min=0)
 
     embed_generator = FashionEmbeddingGenerator()
     style_classifier = StyleClassifier(embed_generator=embed_generator, styles=styles)

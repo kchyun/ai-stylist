@@ -6,7 +6,7 @@ import numpy as np
 from tqdm import tqdm
 from copy import deepcopy
 from torch.optim import Adam, lr_scheduler
-from model.loss import TripletLoss
+from model.loss import TripletLoss, compute_loss
 from transformers import  CLIPVisionModelWithProjection, CLIPProcessor
 
 from datetime import datetime
@@ -70,11 +70,11 @@ class Trainer:
             loss_weight = style_logits  # 뭐 어떤 threshold 혹은 기타 처리하자 나중에...
             loss_weight = loss_weight.to(self.device)
             
-            # Augment로 만든 샘플에 Loss구하기
-            neg_img = self.processor(images=neg_img, return_tensors="pt", padding=True)
-            neg_embed = self.embed_model(**neg_img.to(self.device)).image_embeds.detach()
-            neg_projs = self.model(neg_embed)
-            loss_neg = TripletLoss(anc_projs, pos_projs, neg_projs, loss_weight)
+            # # Augment로 만든 샘플에 Loss구하기
+            # neg_img = self.processor(images=neg_img, return_tensors="pt", padding=True)
+            # neg_embed = self.embed_model(**neg_img.to(self.device)).image_embeds.detach()
+            # neg_projs = self.model(neg_embed)
+            # loss_neg = TripletLoss(anc_projs, pos_projs, neg_projs, loss_weight)
             
             # 랜덤 샘플에 대한 Loss구하기
             B, N_S = neg_random_imgs.size(0), neg_random_imgs.size(1)
@@ -82,13 +82,13 @@ class Trainer:
             neg_random_imgs = self.processor(images=neg_random_imgs, return_tensors="pt", padding=True)
             neg_random_embeds = self.embed_model(**neg_random_imgs.to(self.device)).image_embeds.detach() 
             neg_random_projs = [
-                torch.mean(neg_random_proj.view(B, N_S, -1), dim=1) 
-                for neg_random_proj in self.model(neg_random_embeds) # N_C * (B, N_S, E) -> N_C * (B, E)
+                neg_random_proj.view(B, N_S, -1)
+                for neg_random_proj in self.model(neg_random_embeds) # N_C * (B, N_S, E)
                 ] 
-            loss_random = TripletLoss(anc_projs, pos_projs, neg_random_projs, loss_weight)
+            loss_random = compute_loss(anc_projs, pos_projs, neg_random_projs, loss_weight)
 
             # Augment sample로 만든 Loss와 Random sample로 만든 Loss를 가중치합
-            loss = self.args.w_neg * loss_neg + self.args.w_random * loss_random
+            loss = self.args.w_random * loss_random # + self.args.w_neg * loss_neg
 
             loss.backward()
             self.optimizer.step()
@@ -137,7 +137,7 @@ class Trainer:
                 neg_random_proj.view(B, N_S, -1)
                 for neg_random_proj in self.model(neg_random_embeds) # N_C * (B, N_S, E)
                 ] 
-            loss_random = TripletLoss(anc_projs, pos_projs, neg_random_projs, loss_weight)
+            loss_random = compute_loss(anc_projs, pos_projs, neg_random_projs, loss_weight)
 
             # Augment sample로 만든 Loss와 Random sample로 만든 Loss를 가중치합
             loss = self.args.w_random * loss_random # + self.args.w_neg * loss_neg
