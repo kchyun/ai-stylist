@@ -2,6 +2,7 @@ import os
 import argparse
 import torch
 import numpy as np
+import torch.nn.functional as F
 
 from tqdm import tqdm
 from copy import deepcopy
@@ -44,10 +45,32 @@ class Trainer:
                 model_name = f'{epoch}_{valid_loss:.3f}'
                 self.save(self.args.save_path, model_name)
 
+    """Modification"""
+    def _filter_negatives(self, pos_embed, neg_embeds, threshold):
+
+        # pos_embed shape: (B, E), neg_embeds shape: (B, N_S, E)
+        B, N_S, E = neg_embeds.shape
+        pos_embed = pos_embed.unsqueeze(1)  # (B, 1, E)
+        similarities = F.cosine_similarity(pos_embed, neg_embeds, dim=2)  # (B, N_S)
+
+        # Mask for negatives above the threshold
+        mask = similarities >= threshold
+
+        # If all negatives are below the threshold, keep the one with the lowest similarity
+        all_below_threshold = mask.sum(dim=1) == 0
+        lowest_sim_indices = similarities.argmin(dim=1)
+        mask[torch.arange(B)[all_below_threshold], lowest_sim_indices[all_below_threshold]] = True
+
+        # Filter out embeddings below threshold
+        filtered_neg_embeds = neg_embeds[mask.unsqueeze(-1).expand(-1, -1, E)].view(B, -1, E)
+
+        return filtered_neg_embeds, mask.view(B, N_S)
+
     def _train(self, dataloader, epoch):
         self.model.train()
         epoch_iterator = tqdm(dataloader)
         losses = 0.0
+        threshold = 0.5
         for iter, batch in enumerate(epoch_iterator, start=1):
             self.optimizer.zero_grad()
 
@@ -63,14 +86,18 @@ class Trainer:
             
             # Shape of negs: (B, N_S, H, W, C)
             # (B*N_S, H, W, C)
-            B = neg_imgs.size(0)
-            N_S = neg_imgs.size(1)
 
             neg_imgs = neg_imgs.view(-1, neg_imgs.size(2), neg_imgs.size(3), neg_imgs.size(4))
             neg_imgs = self.processor(images=neg_imgs, return_tensors="pt", padding=True)
             neg_embeds = self.embed_model(**neg_imgs.to(self.device)).image_embeds.detach()
+            """Modification"""
+            neg_embeds_filtered, mask = self._filter_negatives(pos_embed, neg_embeds, threshold)
+            neg_imgs_filtered = neg_imgs[mask].view(B, -1, neg_imgs.size(2), neg_imgs.size(3), neg_imgs.size(4))
+            B = neg_imgs_filtered.size(0)
+            N_S = neg_imgs_filtered.size(1)
             # N_C * (B*N_S, E)
-            neg_projs = self.model(neg_embeds)
+            neg_projs = self.model(neg_embeds_filtered)
+            
             # N_C * (B, N_S, E)
             neg_projs = [neg_proj.view(B, N_S, -1) for neg_proj in neg_projs]
             # N_C * (B, E)
@@ -99,6 +126,7 @@ class Trainer:
         self.model.eval()
         epoch_iterator = tqdm(dataloader)
         losses = 0.0
+        threshold = 0.5
         for iter, batch in enumerate(epoch_iterator, start=1):
             anc_img, pos_img, neg_imgs = batch
 
@@ -110,12 +138,16 @@ class Trainer:
             pos_embed = self.embed_model(**pos_img.to(self.device)).image_embeds.detach()
             pos_projs = self.model(pos_embed)
 
-            B = neg_imgs.size(0)
-            N_S = neg_imgs.size(1)
             neg_imgs = neg_imgs.view(-1, neg_imgs.size(2), neg_imgs.size(3), neg_imgs.size(4))
             neg_imgs = self.processor(images=neg_imgs, return_tensors="pt", padding=True)
             neg_embeds = self.embed_model(**neg_imgs.to(self.device)).image_embeds.detach()
-            neg_projs = self.model(neg_embeds)
+            """Modification"""
+            neg_embeds_filtered, mask = self._filter_negatives(pos_embed, neg_embeds, threshold)
+            neg_imgs_filtered = neg_imgs[mask].view(B, -1, neg_imgs.size(2), neg_imgs.size(3), neg_imgs.size(4))
+            B = neg_imgs_filtered.size(0)
+            N_S = neg_imgs_filtered.size(1)
+            
+            neg_projs = self.model(neg_embeds_filtered)
             neg_projs = [neg_proj.view(B, N_S, -1) for neg_proj in neg_projs]
             neg_projs = [torch.mean(neg_proj, dim=1) for neg_proj in neg_projs]
 
