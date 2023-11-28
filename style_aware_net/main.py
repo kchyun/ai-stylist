@@ -21,18 +21,21 @@ MODEL_NAME = 'Final'
 
 @dataclass
 class TrainingArgs:
-    n_batch: int=32
-    n_epochs: int=5
+    n_batch: int=8
+    n_epochs: int=10
     learning_rate: float=0.0001
     device: str='cuda'
     save_every: int=1
-    save_path: str = 'C:/KU/ai-stylist/ai-stylist/style_aware_net/model/saved_model'
+    save_path: str='C:/KU/ai-stylist/ai-stylist/style_aware_net/model/saved_model'
+    w_neg: int=0.5
+    w_random: int=1
 
-styles = ["formal, dandy and minimal",
+
+styles = ["formal and minimal",
           "athletic and sports",
-          "casual and classic", 
-          "ethnic, hippie and maximalism", 
-          "hip-hop, street and gangster", 
+          "casual and daily", 
+          "ethnic, hippie, and maximalism", 
+          "hip-hop and street", 
           "preppy and classic", 
           "feminine and girlish"]
 
@@ -46,7 +49,7 @@ def main():
         A.Rotate(limit=15),
         A.ColorJitter(brightness=0.2, contrast=0.2, saturation=0.2, hue=0.05, p=0.5),
         ])
-    
+
     train_dataset, valid_dataset = get_dataset(transform)
 
     train_dataloader = DataLoader(train_dataset, TrainingArgs.n_batch, shuffle=True)
@@ -54,7 +57,7 @@ def main():
 
     model = StyleAwareNet(model_args).to(device)
     optimizer = Adam(model.parameters(), lr=TrainingArgs.learning_rate)
-    scheduler = lr_scheduler.StepLR(optimizer, step_size = 100, gamma=0.9)
+    scheduler = lr_scheduler.CosineAnnealingLR(optimizer, T_max=1000, eta_min=0)
 
     embed_generator = FashionEmbeddingGenerator()
 

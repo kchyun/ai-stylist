@@ -8,9 +8,11 @@ from PIL import Image
 from tqdm import tqdm
 import pandas as pd
 
+
 MODEL_PATH = 'C:/KU/ai-stylist/ai-stylist/style_aware_net/model/saved_model'
 MODEL_NAME = '0_0.683'
 DIR = 'C:/KU/ai-stylist/ai-stylist/data/polyvore_outfits/images'
+
 
 model_args = ModelArgs(
     n_conditions = 9
@@ -41,38 +43,26 @@ def infer():
     print(f'Embed Generator successfully loaded')
 
     recommender = FashionRecommender(model, embed_generator, device='cuda')
-    
+
     torch.no_grad()
     top_ids = pd.read_json('C:/KU/ai-stylist/ai-stylist/data/polyvore_cleaned/top_embeds.json').index
     bottom_ids = pd.read_json('C:/KU/ai-stylist/ai-stylist/data/polyvore_cleaned/bottom_embeds.json').index
 
     top_id_choosed = random.choice(top_ids)
-    print("selected top id: ", top_id_choosed)
-    
+    top_image = Image.open(os.path.join(DIR, str(top_id_choosed) + '.jpg'))
+
     bottom_ids_choosed = bottom_ids[0:256]# [random.choice(bottom_ids) for _ in range(64)]
 
     '''
-    0:      "formal, dandy, modern and minimal",
-    1:      "athletic and sports",
-    2:      "casual and classic", 
-    3:      "ethnic, hippie and maximalism", 
-    4:      "hip-hop and street gangster", 
-    5:      "preppy and classic", 
-    6:      "feminine and girlish"
+    styles = ["formal and minimal",
+          "athletic and sports",
+          "casual and daily", 
+          "ethnic, hippie, and maximalism", 
+          "hip-hop and street", 
+          "preppy and classic", 
+          "feminine and girlish"]
     '''
-    
-    '''
-    0:      "wedding",
-    1:      "casual date",
-    2:      "party",
-    3:      "workout and sports",
-    4:      "funeral",
-    5:      "trip",
-    6:      "work and business",
-    # 7:      "formal meeting",
-    # 8:      "meeting friends",
-    '''
-    
+
     # get top bottom embeddings first
     top_image = Image.open(os.path.join(DIR, str(top_id_choosed) + '.jpg'))
     top_embed = embed_generator.img2embed([top_image])
@@ -85,6 +75,7 @@ def infer():
     for i in range(7):
         scores = []
         for bottom_embed in tqdm(bottom_embeds):
+
 
             scores.append(recommender.single_infer(top_embed, bottom_embed, torch.LongTensor([i])).item())
 
