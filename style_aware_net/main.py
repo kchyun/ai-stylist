@@ -21,7 +21,7 @@ MODEL_NAME = 'Final'
 
 @dataclass
 class TrainingArgs:
-    n_batch: int=64
+    n_batch: int=8
     n_epochs: int=10
     learning_rate: float=0.0001
     device: str='cuda'

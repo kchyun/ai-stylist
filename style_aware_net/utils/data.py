@@ -39,6 +39,7 @@ class StyleAwareNetDataset(Dataset):
 
         self.pos_pairs, self.neg_check = self._preprocess_pairs(self.pairs_path)
         self.top_ids = pd.read_json(self.top_ids_path).index
+        # Queue로 구현
         self.bottom_ids = set(pd.read_json(self.bottom_ids_path).index)
         
 
@@ -79,7 +80,7 @@ class StyleAwareNetDataset(Dataset):
         return pos_pairs, neg_check
     
 
-    def _get_neg_ids(self, anc_id, n_sample=8):
+    def _get_neg_ids(self, anc_id, n_sample=256):
         neg_ids = random.sample((self.bottom_ids - self.neg_check.loc[anc_id]['bottom_id']), n_sample)
         return list(neg_ids)
     
