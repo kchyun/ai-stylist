@@ -10,7 +10,7 @@ from model.loss import TripletLoss
 from transformers import  CLIPVisionModelWithProjection, CLIPProcessor
 
 class Trainer:
-    def __init__(self, model, train_dataloader, valid_dataloader, optimizer, scheduler, style_classifier, device, args):
+    def __init__(self, model, train_dataloader, valid_dataloader, optimizer, scheduler, device, args):
         self.embed_model = CLIPVisionModelWithProjection.from_pretrained('patrickjohncyh/fashion-clip').to(device)
         for param in self.embed_model.parameters():
             param.requires_grad = False
@@ -24,8 +24,6 @@ class Trainer:
         self.scheduler = scheduler
         self.device = device
         self.args = args
-
-        self.style_classifier = style_classifier
 
         self.best_model_state = None
         self.best_optimizer_state = None
@@ -72,15 +70,11 @@ class Trainer:
             # N_C * (B*N_S, E)
             neg_projs = self.model(neg_embeds)
             
-            neg_projs = neg_projs.view(neg_projs.shape[0], B, N_S, -1)
-            neg_projs = torch.mean(neg_projs, dim=2)
-             
-            # loss 가중치 결정
-            style_logits = self.style_classifier.forward(anc_embed, pos_embed, self.device)
-            loss_weight = style_logits  # 뭐 어떤 threshold 혹은 기타 처리하자 나중에...
-            loss_weight = loss_weight.to(self.device)
+            # neg_projs = neg_projs.view(neg_projs.shape[0], B, N_S, -1)
+            # neg_projs = torch.mean(neg_projs, dim=2)
 
-            loss = TripletLoss(anc_projs, pos_projs, neg_projs, loss_weight)
+            # TODO: new loss here
+            loss = 0.
 
             loss.backward()
             self.optimizer.step()
@@ -115,14 +109,9 @@ class Trainer:
             neg_imgs = self.processor(images=neg_imgs, return_tensors="pt", padding=True)
             neg_embeds = self.embed_model(**neg_imgs.to(self.device)).image_embeds.detach()
             neg_projs = self.model(neg_embeds)
-            neg_projs = [neg_proj.view(B, N_S, -1) for neg_proj in neg_projs]
-            neg_projs = [torch.mean(neg_proj, dim=1) for neg_proj in neg_projs]
 
-            style_logits = self.style_classifier.forward(anc_embed, pos_embed, self.device)
-            loss_weight = style_logits
-            loss_weight = loss_weight.to(self.device)
-
-            loss = TripletLoss(anc_projs, pos_projs, neg_projs, loss_weight)
+            # TODO: new loss here
+            loss = 0.
             
             losses += loss.item()
 

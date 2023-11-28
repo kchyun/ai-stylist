@@ -19,7 +19,6 @@ class StyleAwareNet(nn.Module):
         super(StyleAwareNet, self).__init__()
         self.src_embed_dim = args.src_embed_dim
         self.tgt_embed_dim = args.tgt_embed_dim
-        self.n_conditions = args.n_conditions
 
         self.bottleneck_layer = nn.Sequential(
             nn.Linear(self.src_embed_dim, self.src_embed_dim),
@@ -34,25 +33,11 @@ class StyleAwareNet(nn.Module):
         #     masks.append(nn.Linear(self.tgt_embed_size, self.tgt_embed_size))
         # self.masks = nn.ModuleList(masks)
 
-        self.masks = torch.nn.Embedding(self.n_conditions, args.tgt_embed_dim)
-        self.masks.weight.data.normal_(0.9, 0.7) # 0.1, 0.005
+        # self.masks = torch.nn.Embedding(self.n_conditions, args.tgt_embed_dim)
+        # self.masks.weight.data.normal_(0.9, 0.7) # 0.1, 0.005
 
 
-    def forward(self, x: Tensor, s=None):
+    def forward(self, x: Tensor):
         ''' x: Embedding of input images
-            s: Style type of input images
         '''
-        comp_embed = self.bottleneck_layer(x) # CLIP 임베딩을 차원 축소한 것
-        if s is not None:
-            mask = self.masks(s)
-            proj_embed = comp_embed * mask
-            return comp_embed, proj_embed
-        else:
-            proj_embeds = []
-            for i in range(self.n_conditions):
-                mask = self.masks(torch.LongTensor([i]).cuda())
-                proj_embed = comp_embed * mask
-                proj_embeds.append(proj_embed)
-            return torch.stack([e for e in proj_embeds])
-
-
+        return self.bottleneck_layer(x) # CLIP 임베딩을 차원 축소한 것

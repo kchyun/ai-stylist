@@ -28,32 +28,15 @@ class TrainingArgs:
     save_every: int=1
     save_path: str = 'C:/KU/ai-stylist/ai-stylist/style_aware_net/model/saved_model'
 
+styles = ["formal, dandy and minimal",
+          "athletic and sports",
+          "casual and classic", 
+          "ethnic, hippie and maximalism", 
+          "hip-hop, street and gangster", 
+          "preppy and classic", 
+          "feminine and girlish"]
 
-model_args = ModelArgs(
-    n_conditions = 7
-)
-
-# styles = ["formal, dandy and minimal",
-#           "athletic and sports",
-#           "casual and classic", 
-#           "ethnic, hippie and maximalism", 
-#           "hip-hop, street and gangster", 
-#           "preppy and classic", 
-#           "feminine and girlish"]
-
-styles = [
-    "wedding",
-    "casual date",
-    "party",
-    "workout and sports",
-    "funeral",
-    "trip",
-    "work and business",
-    "formal meeting",
-    "meeting friends",
-]
-
-
+model_args = ModelArgs()
 
 def main():
     device = torch.device('cuda') if (TrainingArgs.device == 'cuda') & (torch.cuda.is_available()) else torch.device('cpu')
@@ -74,8 +57,7 @@ def main():
     scheduler = lr_scheduler.StepLR(optimizer, step_size = 100, gamma=0.9)
 
     embed_generator = FashionEmbeddingGenerator()
-    style_classifier = StyleClassifier(embed_generator=embed_generator, styles=styles)
-    
+
     args = TrainingArgs()
     trainer = Trainer(
         model,
@@ -83,7 +65,6 @@ def main():
         valid_dataloader,
         optimizer=optimizer,
         scheduler=scheduler,
-        style_classifier=style_classifier,
         device=device,
         args=args)
 
