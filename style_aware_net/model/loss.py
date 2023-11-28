@@ -28,9 +28,9 @@ def info_nce(anc, pos, negs, temparature=0.1, reduction='mean'):
     negs = F.normalize(negs, dim=-1)
 
     # (B, E), (B, E) -> (B, 1)
-    pos_logit = torch.sum(anc * pos, dim=1, keepdim=True)
+    pos_logit = torch.sum(anc * pos, dim=-1, keepdim=True)
     # (B, E, 1), (B, E, N_S) -> (B, E, N_S) -> (B, N_S)
-    neg_logits = torch.sum(anc.unsqueeze(1) * negs, dim=2)
+    neg_logits = torch.sum(anc.unsqueeze(1) * negs, dim=-1)
     # (B, E, 1), (B, E, N_S) -> (B, N_S + 1)
     logits = torch.cat([pos_logit, neg_logits], dim=1)
 
