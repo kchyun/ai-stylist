@@ -10,7 +10,7 @@ class StyleClassifier():
         
         self.styles = styles
         self.embed_generator = embed_generator
-        self.temperature = 0.3
+        self.temperature = 0.5
         self.prompt_embeddings = torch.stack([torch.Tensor(self.embed_generator.text2embed("a photo of {} style clothes".format(s))) for s in styles])
     
     @torch.no_grad()
@@ -19,8 +19,6 @@ class StyleClassifier():
         anc_similarity = pairwise_cosine_similarity(anc, self.prompt_embeddings.squeeze(1).to(device))
 
         logits = torch.min(torch.stack([anc_similarity, pos_similarity]), 0).values
-        min_, max_ = torch.min(logits, dim=1)[0].unsqueeze(1), torch.max(logits, dim=1)[0].unsqueeze(1)
-        logits = (logits - min_) / (max_ - min_)
         logits = torch.nn.functional.softmax(logits / self.temperature, dim=1).detach() # 차이를 좀 두드러지게하고싶어서, Temparature scaling했습니다.
         return logits
 

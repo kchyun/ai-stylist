@@ -8,9 +8,9 @@ from PIL import Image
 from tqdm import tqdm
 import pandas as pd
 
-MODEL_PATH = 'F:/Projects/ai-stylist/style_aware_net/model/saved_model'
-MODEL_NAME = '0_0.908'
-DIR = 'F:/Projects/ai-stylist/data/polyvore_outfits/images'
+MODEL_PATH = 'F:/Projects/2023-ai-stylist/style_aware_net/model/saved_model'
+MODEL_NAME = '2023-11-28_4_0.917'
+DIR = 'F:/Projects/2023-ai-stylist/data/polyvore_outfits/images'
 
 model_args = ModelArgs(
     n_conditions = 7
@@ -42,8 +42,8 @@ def infer():
 
     recommender = FashionRecommender(model, embed_generator, device='cuda')
 
-    top_ids = pd.read_json('F:/Projects/ai-stylist/data/polyvore_cleaned/top_ids.json').index
-    bottom_ids = pd.read_json('F:/Projects/ai-stylist/data/polyvore_cleaned/bottom_ids.json').index
+    top_ids = pd.read_json('F:/Projects/2023-ai-stylist/data/polyvore_cleaned/top_ids.json').index
+    bottom_ids = pd.read_json('F:/Projects/2023-ai-stylist/data/polyvore_cleaned/bottom_ids.json').index
 
     top_id_choosed = 1377609# random.choice(top_ids)
     top_image = Image.open(os.path.join(DIR, str(top_id_choosed) + '.jpg'))
@@ -51,20 +51,20 @@ def infer():
     bottom_ids_choosed = bottom_ids[0:256]# [random.choice(bottom_ids) for _ in range(64)]
 
     '''
-    0:      "formal, dandy, modern and minimal",
-    1:      "athletic and sports",
-    2:      "casual and classic", 
-    3:      "ethnic, hippie and maximalism", 
-    4:      "hip-hop and street gangster", 
-    5:      "preppy and classic", 
-    6:      "feminine and girlish"
+    styles = ["formal and minimal",
+          "athletic and sports",
+          "casual and daily", 
+          "ethnic, hippie, and maximalism", 
+          "hip-hop and street", 
+          "preppy and classic", 
+          "feminine and girlish"]
     '''
 
     scores = []
     for bottom_id in tqdm(bottom_ids_choosed):
         bottom_image = Image.open(os.path.join(DIR, str(bottom_id) + '.jpg'))
 
-        scores.append(recommender.single_infer(top_image, bottom_image, torch.LongTensor([1])).item())
+        scores.append(recommender.single_infer(top_image, bottom_image, torch.LongTensor([6])).item())
 
     bottoms = sorted(list(zip(scores, bottom_ids_choosed)), key=lambda x: x[0], reverse=False)
     bottoms = bottoms[:5] + bottoms[-5:]

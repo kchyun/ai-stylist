@@ -21,8 +21,8 @@ MODEL_NAME = 'Final'
 
 @dataclass
 class TrainingArgs:
-    n_batch: int=32
-    n_epochs: int=5
+    n_batch: int=64
+    n_epochs: int=10
     learning_rate: float=0.0001
     device: str='cuda'
     save_every: int=1
@@ -35,16 +35,13 @@ model_args = ModelArgs(
     n_conditions = 7
 )
 
-styles = [
-    "casual date",
-    "party",
-    "workout and sports",
-    "funeral",
-    "trip",
-    "work and business",
-    "formal meeting",
-    "meeting friends",
-]
+styles = ["formal and minimal",
+          "athletic and sports",
+          "casual and daily", 
+          "ethnic, hippie, and maximalism", 
+          "hip-hop and street", 
+          "preppy and classic", 
+          "feminine and girlish"]
 
 
 def main():
@@ -63,7 +60,7 @@ def main():
 
     model = StyleAwareNet(model_args).to(device)
     optimizer = Adam(model.parameters(), lr=TrainingArgs.learning_rate)
-    scheduler = lr_scheduler.StepLR(optimizer, step_size = 100, gamma=0.9)
+    scheduler = lr_scheduler.CosineAnnealingLR(optimizer, T_max=100, eta_min=0)
 
     embed_generator = FashionEmbeddingGenerator()
     style_classifier = StyleClassifier(embed_generator=embed_generator, styles=styles)

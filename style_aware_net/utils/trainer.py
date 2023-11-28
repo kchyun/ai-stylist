@@ -9,6 +9,8 @@ from torch.optim import Adam, lr_scheduler
 from model.loss import TripletLoss
 from transformers import  CLIPVisionModelWithProjection, CLIPProcessor
 
+from datetime import datetime
+
 class Trainer:
     def __init__(self, model, train_dataloader, valid_dataloader, optimizer, scheduler, style_classifier, device, args):
         self.model = model
@@ -41,7 +43,9 @@ class Trainer:
                 self.best_optimizer_state = deepcopy(self.optimizer.state_dict())
 
             if epoch % self.args.save_every == 0:
-                model_name = f'{epoch}_{valid_loss:.3f}'
+                now = datetime.now()
+                date = now.strftime('%Y-%m-%d')
+                model_name = f'{date}_{epoch}_{valid_loss:.3f}'
                 self.save(self.args.save_path, model_name)
 
     def _train(self, dataloader, epoch):
