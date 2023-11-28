@@ -20,7 +20,7 @@ class StyleAwareNetDataset(Dataset):
         self,
         rootdir,
         is_train,
-        transform=None
+        transform=None,
         ):
         super(StyleAwareNetDataset, self).__init__()
         self.pairs_path = os.path.join(
@@ -39,7 +39,8 @@ class StyleAwareNetDataset(Dataset):
 
         self.pos_pairs, self.neg_check = self._preprocess_pairs(self.pairs_path)
         self.top_ids = pd.read_json(self.top_ids_path).index
-        self.bottom_ids = pd.read_json(self.bottom_ids_path).index
+        # Queue로 구현
+        self.bottom_ids = set(pd.read_json(self.bottom_ids_path).index)
         
 
     def __len__(self):
@@ -52,10 +53,12 @@ class StyleAwareNetDataset(Dataset):
 
         anc_img = self._id2img(anc_id)
         pos_img = self._id2img(pos_id)
-        neg_imgs = torch.stack([self._id2img(neg_id) for neg_id in neg_ids])
-        return anc_img, pos_img, neg_imgs
-    
+        neg_img = 255 - pos_img
+        neg_random_imgs = torch.stack([self._id2img(neg_id) for neg_id in neg_ids])
 
+        return anc_img, pos_img, neg_img, neg_random_imgs
+
+    
     def _id2img(self, img_id):
         img = Image.open(os.path.join(self.img_path, f'{img_id}.jpg'))
         img = np.array(img.convert("RGB"))[:, :, ::-1]
@@ -77,12 +80,8 @@ class StyleAwareNetDataset(Dataset):
         return pos_pairs, neg_check
     
 
-    def _get_neg_ids(self, anc_id, n_sample=8):
-        neg_ids = set()
-        while len(neg_ids) < n_sample:
-            neg_id = random.choice(self.bottom_ids)
-            if neg_id not in self.neg_check.loc[anc_id]['bottom_id']:
-                neg_ids.add(neg_id)
+    def _get_neg_ids(self, anc_id, n_sample=256):
+        neg_ids = random.sample((self.bottom_ids - self.neg_check.loc[anc_id]['bottom_id']), n_sample)
         return list(neg_ids)
     
 
