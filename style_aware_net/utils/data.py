@@ -7,6 +7,7 @@ import pandas as pd
 
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
 from torch import Tensor, LongTensor
 from torch.utils.data import Dataset, DataLoader, random_split
 
@@ -28,10 +29,10 @@ class StyleAwareNetDataset(Dataset):
             'train.json' if is_train else 'valid.json')
         self.top_ids_path = os.path.join(
             rootdir, 'data', 'polyvore_cleaned',
-            'top_ids.json')
+            'top_embeds.json')
         self.bottom_ids_path = os.path.join(
             rootdir, 'data', 'polyvore_cleaned',
-            'bottom_ids.json')
+            'bottom_embeds.json')
         self.img_path = os.path.join(
             rootdir, 'data', 'polyvore_outfits', 'images')
 
@@ -48,7 +49,7 @@ class StyleAwareNetDataset(Dataset):
 
     def __getitem__(self, idx):
         anc_id, pos_id = self.pos_pairs[idx]
-        neg_ids = self._get_neg_ids(anc_id, n_sample=8)
+        neg_ids = self._get_neg_ids(anc_id, pos_id, n_sample=8, n_candidates=1024, threshold=0.7)
 
         anc_img = self._id2img(anc_id)
         pos_img = self._id2img(pos_id)
@@ -76,14 +77,56 @@ class StyleAwareNetDataset(Dataset):
 
         return pos_pairs, neg_check
     
+    def get_embedding(self, img_id):
+        # function to get embeddings for cosine similarity calculation - 에러 나는 부분
+        return 0
 
-    def _get_neg_ids(self, anc_id, n_sample=8):
-        neg_ids = set()
-        while len(neg_ids) < n_sample:
-            neg_id = random.choice(self.bottom_ids)
-            if neg_id not in self.neg_check.loc[anc_id]['bottom_id']:
-                neg_ids.add(neg_id)
-        return list(neg_ids)
+    def _get_neg_ids(self, anc_id, pos_id, n_sample=8, n_candidates = 1024, threshold = 0.7):
+        # random sample, ensuring not to include positive sample
+        candidates = random.sample([id for id in self.bottom_ids if id!=pos_id], n_candidates)
+        pos_embedding = self._get_embedding(pos_id)
+        candidate_embeddings = torch.stack([self._get_embedding(candidate) for candidate in candidates])
+
+        similarities = F.cosine_similarity(pos_embedding.unsqueeze(0), candidate_embeddings)
+
+        # Sort by similarity in descending order, similarity below threshold ensures that filtered candidates are at least "negative samples".
+        filtered_candidates = [(candidate, similarity.item()) for candidate, similarity in zip(candidates, similarities) if similarity < threshold]
+        filtered_candidates.sort(key=lambda x: x[1], reverse=True)
+
+        # Select the top `n_sample` negatives
+        neg_ids = [candidate for candidate, _ in filtered_candidates[:n_sample]]
+        return neg_ids
+
+    """
+    1. Asusming we have bottom embedding dataset. Using EM algorithm, cluster them into n clusters. 
+    n will be the argument.
+    2. Positive embedding (embedding vector corresponding to pos_id) will be in certain cluster A. 
+    We will sample n_sample negatives in different cluster with that positive embedding.
+    3. Each cluster will have mean vector. We will sample negatives from cluster that has centroid (mean vector) 
+    among n-1 clusters that are closest from centroid of A. Such cluster will be B.
+    4. In B cluster, randomly sample n_sample negatives.
+    """
+    def _get_neg_ids_cluster(self, pos_id, n_sample=8):
+        pos_cluster_id = self.clusters[pos_id]
+        pos_centroid = self.centroids[pos_cluster_id]
+
+        # Calculate distances of centroids to the positive centroid and sort them
+        distances = torch.cdist([pos_centroid], self.centroids, p=2).flatten()
+        closest_clusters = np.argsort(distances)
+
+        # Find the closest different cluster
+        for cluster_id in closest_clusters:
+            if cluster_id != pos_cluster_id:
+                closest_diff_cluster_id = cluster_id
+                break
+
+        # Get bottom ids in the closest different cluster
+        closest_diff_cluster_bottoms = [img_id for img_id, cluster_id in self.clusters.items() if cluster_id == closest_diff_cluster_id]
+
+        # Randomly sample negatives from this cluster
+        neg_ids = random.sample(closest_diff_cluster_bottoms, min(n_sample, len(closest_diff_cluster_bottoms)))
+
+        return neg_ids
     
 
 def get_dataset(transform):
