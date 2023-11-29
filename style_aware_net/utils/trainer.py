@@ -10,6 +10,7 @@ from model.loss import TripletLoss, compute_loss
 from transformers import  CLIPVisionModelWithProjection, CLIPProcessor
 
 from datetime import datetime
+import wandb
 
 class Trainer:
     def __init__(self, model, train_dataloader, valid_dataloader, optimizer, scheduler, style_classifier, device, args):
@@ -33,20 +34,24 @@ class Trainer:
         self.processor = CLIPProcessor.from_pretrained('patrickjohncyh/fashion-clip')
 
     def train(self):
+        
+        
         lowest_loss = np.inf
         for epoch in range(self.args.n_epochs):
             train_loss = self._train(self.train_dataloader, epoch)
             valid_loss = self._validate(self.valid_dataloader, epoch)
             if valid_loss <= lowest_loss:
-                lowest_loss = valid_loss
-                self.best_model_state = deepcopy(self.model.state_dict())
-                self.best_optimizer_state = deepcopy(self.optimizer.state_dict())
+               lowest_loss = valid_loss
+               self.best_model_state = deepcopy(self.model.state_dict())
+               self.best_optimizer_state = deepcopy(self.optimizer.state_dict())
 
             if epoch % self.args.save_every == 0:
                 now = datetime.now()
                 date = now.strftime('%Y-%m-%d')
                 model_name = f'{date}_{epoch}_{valid_loss:.3f}'
                 self.save(self.args.save_path, model_name)
+            
+
 
     def _train(self, dataloader, epoch):
         self.model.train()
@@ -55,7 +60,7 @@ class Trainer:
         for iter, batch in enumerate(epoch_iterator, start=1):
             self.optimizer.zero_grad()
 
-            anc_img, pos_img, neg_img, neg_random_imgs = batch
+            anc_img, pos_img, neg_random_imgs = batch
 
             anc_img = self.processor(images=anc_img, return_tensors="pt", padding=True)
             anc_embed = self.embed_model(**anc_img.to(self.device)).image_embeds.detach()
@@ -67,25 +72,20 @@ class Trainer:
 
             # loss 가중치 결정
             style_logits = self.style_classifier.forward(anc_embed, pos_embed, self.device)
-            loss_weight = style_logits  # 뭐 어떤 threshold 혹은 기타 처리하자 나중에...
+            loss_weight = style_logits 
             loss_weight = loss_weight.to(self.device)
-            
-            # # Augment로 만든 샘플에 Loss구하기
-            # neg_img = self.processor(images=neg_img, return_tensors="pt", padding=True)
-            # neg_embed = self.embed_model(**neg_img.to(self.device)).image_embeds.detach()
-            # neg_projs = self.model(neg_embed)
-            # loss_neg = TripletLoss(anc_projs, pos_projs, neg_projs, loss_weight)
             
             # 랜덤 샘플에 대한 Loss구하기
             B, N_S = neg_random_imgs.size(0), neg_random_imgs.size(1)
-            neg_random_imgs = neg_random_imgs.view(-1, neg_random_imgs.size(2), neg_random_imgs.size(3), neg_random_imgs.size(4)) # (B*N_S, H, W, C)
+            neg_random_imgs = neg_random_imgs.view(-1, neg_random_imgs.size(2), neg_random_imgs.size(3), neg_random_imgs.size(4)) # (B * N_S, H, W, C)
             neg_random_imgs = self.processor(images=neg_random_imgs, return_tensors="pt", padding=True)
             neg_random_embeds = self.embed_model(**neg_random_imgs.to(self.device)).image_embeds.detach() 
             neg_random_projs = [
-                neg_random_proj.view(B, N_S, -1)
-                for neg_random_proj in self.model(neg_random_embeds) # N_C * (B, N_S, E)
-                ] 
-            loss_random = compute_loss(anc_projs, pos_projs, neg_random_projs, loss_weight)
+                neg_random_embed.view(B, N_S, -1)
+                for neg_random_embed in self.model(neg_random_embeds)
+                ]
+
+            loss_random, logging_loss = compute_loss(anc_projs, pos_projs, neg_random_projs, loss_weight)
 
             # Augment sample로 만든 Loss와 Random sample로 만든 Loss를 가중치합
             loss = self.args.w_random * loss_random # + self.args.w_neg * loss_neg
@@ -97,6 +97,9 @@ class Trainer:
 
             epoch_iterator.set_description(
                 'Train | Epoch: {:03}/{:03} | loss: {:.5f}'.format(epoch + 1, self.args.n_epochs, losses / iter))
+            
+            wandb.log({"train_loss": loss_random,
+                       "train_logging_loss": logging_loss}, commit=True)
 
         return losses / iter
 
@@ -107,7 +110,7 @@ class Trainer:
         epoch_iterator = tqdm(dataloader)
         losses = 0.0
         for iter, batch in enumerate(epoch_iterator, start=1):
-            anc_img, pos_img, neg_img, neg_random_imgs = batch
+            anc_img, pos_img, neg_random_imgs = batch
 
             anc_img = self.processor(images=anc_img, return_tensors="pt", padding=True)
             anc_embed = self.embed_model(**anc_img.to(self.device)).image_embeds.detach()
@@ -119,25 +122,20 @@ class Trainer:
 
             # loss 가중치 결정
             style_logits = self.style_classifier.forward(anc_embed, pos_embed, self.device)
-            loss_weight = style_logits  # 뭐 어떤 threshold 혹은 기타 처리하자 나중에...
+            loss_weight = style_logits 
             loss_weight = loss_weight.to(self.device)
-            
-            # # Augment로 만든 샘플에 Loss구하기
-            # neg_img = self.processor(images=neg_img, return_tensors="pt", padding=True)
-            # neg_embed = self.embed_model(**neg_img.to(self.device)).image_embeds.detach()
-            # neg_projs = self.model(neg_embed)
-            # loss_neg = TripletLoss(anc_projs, pos_projs, neg_projs, loss_weight)
             
             # 랜덤 샘플에 대한 Loss구하기
             B, N_S = neg_random_imgs.size(0), neg_random_imgs.size(1)
-            neg_random_imgs = neg_random_imgs.view(-1, neg_random_imgs.size(2), neg_random_imgs.size(3), neg_random_imgs.size(4)) # (B*N_S, H, W, C)
+            neg_random_imgs = neg_random_imgs.view(-1, neg_random_imgs.size(2), neg_random_imgs.size(3), neg_random_imgs.size(4)) # (B * N_S, H, W, C)
             neg_random_imgs = self.processor(images=neg_random_imgs, return_tensors="pt", padding=True)
             neg_random_embeds = self.embed_model(**neg_random_imgs.to(self.device)).image_embeds.detach() 
             neg_random_projs = [
-                neg_random_proj.view(B, N_S, -1)
-                for neg_random_proj in self.model(neg_random_embeds) # N_C * (B, N_S, E)
-                ] 
-            loss_random = compute_loss(anc_projs, pos_projs, neg_random_projs, loss_weight)
+                neg_random_embed.view(B, N_S, -1)
+                for neg_random_embed in self.model(neg_random_embeds)
+                ]
+
+            loss_random, logging_loss = compute_loss(anc_projs, pos_projs, neg_random_projs, loss_weight)
 
             # Augment sample로 만든 Loss와 Random sample로 만든 Loss를 가중치합
             loss = self.args.w_random * loss_random # + self.args.w_neg * loss_neg
@@ -146,6 +144,9 @@ class Trainer:
 
             epoch_iterator.set_description(
                 'Valid | Epoch: {:03}/{:03} | loss: {:.5f}'.format(epoch + 1, self.args.n_epochs, losses / iter))
+            
+            wandb.log({"valid_loss": loss_random,
+                       "valid_logging_loss": logging_loss}, commit=True)
 
         return losses / iter
 

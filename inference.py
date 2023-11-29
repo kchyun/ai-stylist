@@ -18,6 +18,6 @@ class FashionRecommender():
 
     @torch.no_grad()
     def single_infer(self, top, bottom, style):
-        _, a_proj = self.model(torch.Tensor(self.embed_generator.img2embed(top)).to(self.device), style.to(self.device))
-        _, b_proj = self.model(torch.Tensor(self.embed_generator.img2embed(bottom)).to(self.device), style.to(self.device))
-        return torch.nn.PairwiseDistance(p=2)(a_proj, b_proj)
+        a_proj = self.model(torch.Tensor(top).to(self.device), style.to(self.device))
+        b_proj = self.model(torch.Tensor(bottom).to(self.device), style.to(self.device))
+        return torch.nn.CosineSimilarity()(a_proj, b_proj)
