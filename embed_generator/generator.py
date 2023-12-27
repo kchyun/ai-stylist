@@ -1,8 +1,9 @@
+import sys
 import torch
 from torch import Tensor
 from transformers import CLIPProcessor, CLIPModel, CLIPVisionModelWithProjection, CLIPTextModelWithProjection, CLIPTokenizer
 from typing import List, Tuple
-import PIL
+from PIL import Image
 
 
 class FashionEmbeddingGenerator():
@@ -25,7 +26,7 @@ class FashionEmbeddingGenerator():
     @torch.no_grad()
     def img2embed(
         self, 
-        images: List[PIL.Image.Image]
+        images: List[Image.Image]
         ) -> List[List[float]]:
         inputs = self.processor(images=images, return_tensors="pt", padding=True)
         image_embeds = self.image_model(**inputs.to(self.device)).image_embeds
