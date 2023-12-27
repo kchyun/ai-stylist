@@ -11,12 +11,12 @@ class ModelArgs:
     tgt_embed_dim: int = 64
     n_conditions: int=7
 
-class StyleAwareNet(nn.Module):
+class StyleAgnosticNet(nn.Module):
     def __init__(
             self,
             args: ModelArgs,
             ):
-        super(StyleAwareNet, self).__init__()
+        super(self).__init__()
         self.src_embed_dim = args.src_embed_dim
         self.tgt_embed_dim = args.tgt_embed_dim
 
