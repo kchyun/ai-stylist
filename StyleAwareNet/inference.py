@@ -17,7 +17,8 @@ class FashionRecommender():
         self.embed_generator.to(self.device)
 
     @torch.no_grad()
-    def single_infer(self, style_dict: Dict[str, Image]):
-        embeds = [self.embed_generator.img2embed(style_dict[key]) for key in style_dict.keys()]
-        logits = self.model(*embeds)
-        return logits
+    def single_infer(self, top, bottom):
+        [a_proj] = self.model(torch.Tensor(top).to(self.device))
+        [b_proj] = self.model(torch.Tensor(bottom).to(self.device))
+        return torch.nn.PairwiseDistance(p=2)(a_proj, b_proj)
+    

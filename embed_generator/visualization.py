@@ -31,3 +31,22 @@ def show_single_image(data_path, file_name):
     plt.show()
 
 
+def show_full_outfit(top_data_path, bottom_data_path, top_filenames, bottom_filenames, compatibilities, style):
+    fig, axes = plt.subplots(2, 10)
+    fig.set_figheight(2)
+    fig.set_figwidth(10)
+    axes.axis("off")
+    axes.set_title(f"a photo of {style} style clothes")
+    
+    for i in range(10):
+        axes[0][i].set_title(f"{compatibilities[i]:.3f}")
+        
+        top_path = os.path.join(top_data_path, str(top_filenames[i]))
+        axes[0][i].imshow(Image.open(top_path).resize((224, 224)))
+        
+        bottom_path = os.path.join(bottom_data_path, str(bottom_filenames[i]))
+        axes[0][i].imshow(Image.open(bottom_path).resize((224, 224)))
+    
+    plt.show()
+    plt.savefig(f"{style}")
+    plt.close()
