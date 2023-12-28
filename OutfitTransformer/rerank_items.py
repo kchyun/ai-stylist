@@ -6,7 +6,7 @@ sys.path.append("C:/KU/ai-stylist/ai-stylist/OutfitTransformer/outfit-transforme
 
 from embed_generator.generator import *
 from embed_generator.visualization import *
-from style_aware_net.model.style_aware_net import *
+from cp_inference import Predictor
 from utils.data import MusinsaDataset
 from PIL import Image
 from tqdm import tqdm
@@ -14,11 +14,7 @@ from style_classifier import *
 import pandas as pd
 
 
-MODEL_PATH = ""
-MODEL_NAME = ""
 DATA_PATH = "C:/KU/ai-stylist/ai-stylist/data/musinsa-en/"
-
-model_args = ModelArgs()
 
 
 def show_images(fashion_sets, style):
@@ -36,12 +32,12 @@ def show_images(fashion_sets, style):
         axes[1, i].axis("off")
         axes[2, i].axis("off")
         # axes[0, i].set_title(f'{score:.3f}')
-        axes[0, i].imshow(Image.open(os.path.join(DATA_PATH, fashion_set['top']['img_path'][2:])).resize((224, 224)))
-        axes[1, i].imshow(Image.open(os.path.join(DATA_PATH, fashion_set['bottom']['img_path'][2:])).resize((224,224)))
-        axes[2, i].imshow(Image.open(os.path.join(DATA_PATH, fashion_set['shoes']['img_path'][2:])).resize((224,224)))
+        axes[0, i].imshow(Image.open(os.path.join(DATA_PATH, fashion_set['top']['image_path'][2:])).resize((224, 224)))
+        axes[1, i].imshow(Image.open(os.path.join(DATA_PATH, fashion_set['bottom']['image_path'][2:])).resize((224,224)))
+        axes[2, i].imshow(Image.open(os.path.join(DATA_PATH, fashion_set['shoes']['image_path'][2:])).resize((224,224)))
 
     plt.show()
-    fig.savefig(f"./category_compatibility/{style}.png")
+    fig.savefig(f"./{style}.png")
     plt.close()
 
 def get_embeds(items: List, 
@@ -55,11 +51,12 @@ def get_embeds(items: List,
 
 def get_outfits(top, bottom, shoes):
     outfits = []
-    
+
     for t in top:
         for b in bottom:
             for s in shoes:
-                outfits.append({'top': t, 'bottom': b, 'shoes': s})
+                outfit = {'top': t, 'bottom': b, 'shoes': s}
+                outfits.append(outfit)
                 
     return outfits
 
@@ -92,46 +89,51 @@ def infer():
     # Make item dict
     record_top = []
     for item, embed in tqdm(zip(data.top_items, top_embeds)):
-        record_top.append({'img_path' : item["img_path"], 'desc': item["desc"], 'embed':embed, 'score' : styleclassifier.forward(embed, 0, 'cuda')})
+        record_top.append({'image_path' : os.path.join(DATA_PATH, item['img_path'][2:]), 'desc': item["desc"], 'score' : styleclassifier.forward(embed, 0, 'cuda')})
 
     record_bottom = []
     for item, embed in tqdm(zip(data.bottom_items, bottom_embeds)):
-        record_top.append({'img_path' : item["img_path"], 'desc': item["desc"], 'embed':embed, 'score' : styleclassifier.forward(embed, 0, 'cuda')})
+        record_bottom.append({'image_path' : os.path.join(DATA_PATH, item['img_path'][2:]), 'desc': item["desc"], 'score' : styleclassifier.forward(embed, 0, 'cuda')})
 
     record_shoes = []
     for item, embed in tqdm(zip(data.shoes_items, shoes_embeds)):
-        record_top.append({'img_path' : item["img_path"], 'desc': item["desc"], 'embed':embed, 'score' : styleclassifier.forward(embed, 0, 'cuda')})
+        record_shoes.append({'image_path' : os.path.join(DATA_PATH, item['img_path'][2:]), 'desc': item["desc"], 'score' : styleclassifier.forward(embed, 0, 'cuda')})
 
-    import pdb; pdb.set_trace()
     # 모델 정의
+    predictor = Predictor()
+    print("Model successfully loaded")
 
     for i in range(len(styles)):
         category = i
-
+        
         # 각 스타일에 어울리는 순서대로 아이템 정렬
         record_top = sorted(record_top, key=lambda x: x['score'][i])
         record_bottom = sorted(record_bottom, key=lambda x: x['score'][i])
         record_shoes = sorted(record_shoes, key=lambda x: x['score'][i])
         
         # top N개 선택
-        N = 10
-        pick_top = record_top[-N:]
-        pick_bottom = record_bottom[-N:]
-        pick_shoes = record_shoes[-N:]
+        N = 5
+        pick_top = record_top[-5:]
+        pick_bottom = record_bottom[-5:]
+        pick_shoes = record_shoes[-5:]
 
         print("Picked top and bottom")
-        
+
         # outfit 형태로 조합
+        
         outfits = get_outfits(pick_top, pick_bottom, pick_shoes)
 
-        score = 0 
-        # score = recommender.single_infer(pick_top, pick_bottom)
-        # 새로운 compatibility score 계산
-        # sort
+        score = []
+        for o in outfits:
+            score.append(predictor.predict(o))
         
+        topk = torch.topk(torch.Tensor(score), 10)
+        reranked_outfits = [outfits[idx] for idx in topk.indices]
+
         print("Scoring complete")
+        
         # visualize top 10 outfits
-        show_images(score[:10], styles[category])
+        show_images(reranked_outfits[-10:], styles[category])
 
 if __name__ == '__main__':
     infer()
