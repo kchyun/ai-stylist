@@ -102,7 +102,7 @@ python main.py
 > StyleAwareNet
 
 ```bash
-cd ai-stylist/FashStyleAwareNet/style_aware_net
+cd ai-stylist/StyleAwareNet/style_aware_net
 python main.py
 ```
 
@@ -126,7 +126,7 @@ python demo.py
 
 ```bash
 cd ai-stylist/StyleAgnosticNet
-python demo2\_{DATASET_NAME}.py
+python demo2_{DATASET_NAME}.py
 ```
 
 > OutfitTransformer
