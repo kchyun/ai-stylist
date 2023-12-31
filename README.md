@@ -14,9 +14,14 @@
 
 ## 방법론
 
-<!-- ![problem](./image/prob_formulation.png){: width="50%"} -->
-
-<img src="./image/prob_formulation.png" width="300">
+<img src="./image/prob_formulation.png"
+     alt="problem formulation"
+     style="display:block;
+            float:none;
+            margin-left:auto; 
+            margin-right:auto;
+            width:60%;
+            ">
 
 ### Task 1. Representation Learning
 
