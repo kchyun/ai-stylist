@@ -14,7 +14,7 @@
 
 ## 방법론
 
-![problem]('./image/prob_formulation.png')
+![problem](./image/prob_formulation.png)
 
 ### Task 1. Representation Learning
 
@@ -34,7 +34,7 @@
 
 프로젝트를 진행하며 다양한 구조와 손실 함수, 학습 테크닉을 시도했습니다. 그 중 주된 네 가지의 모델 구조를 소개합니다.
 
-![timeline]('./image/model_history.png')
+![timeline](./image/model_history.png)
 
 #### End-to-End Architecture
 
@@ -42,7 +42,7 @@
 <summary>FashionMLP</summary>
 <div markdown="1">
 
-![model]('./image/fashionmlp.png')
+![model](./image/fashionmlp.png)
 
 </div>
 </details>
@@ -51,7 +51,7 @@
 <summary>Style-Aware Network</summary>
 <div markdown="1">
 
-![model]('./image/StyleAwareNet.png')
+![model](./image/StyleAwareNet.png)
 
 </div>
 </details>
@@ -62,7 +62,7 @@
 <summary>Style-Agnostic Network</summary>
 <div markdown="1">
 
-![model]('./image/StyleAgnosticNet.png')
+![model](./image/StyleAgnosticNet.png)
 
 </div>
 </details>
@@ -139,15 +139,15 @@ python rerank_items.py
 
 ### Style Aware Network
 
-![result1]('./image/result_styleawarenet.png)
+![result1](./image/result_styleawarenet.png)
 
 ### Re-ranking with Style Agnostic Network
 
-![result2]('./image/result_styleagnosticnet.png)
+![result2](./image/result_styleagnosticnet.png)
 
 ### Re-ranking with Outfit Transformer
 
-![result3]('./image/result_ot.png')
+![result3](./image/result_ot.png)
 
 ## 팀원
 
