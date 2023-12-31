@@ -5,25 +5,21 @@
 
 ## 소개
 
-<aside>
-🤔 매일 아침 모두의 고민, “오늘 뭐 입지?”
-
-</aside>
+**🤔 매일 아침 모두의 고민, “오늘 뭐 입지?”**
 
 누구나 한 번쯤 했을 법한 생각이죠. **내 옷장 속의 아이템과 상황을 바탕으로 오늘의 코디를 추천** 받을 수 있다면 얼마나 좋을까요? 본 프로젝트는 이 고민거리를 해결하기 위한 딥러닝 모델을 만들어보고자 하는 생각으로부터 시작되었습니다.
 
 ## 방법론
 
-<img src="./image/prob_formulation.png"
-     alt="problem formulation"
-     style="display:block;
-            float:none;
-            margin-left:auto; 
-            margin-right:auto;
-            width:60%;
-            ">
+<p align="center">
+    <img src="./image/prob_formulation.png"
+        alt="problem formulation"
+        style="width: 70%">
+</p>
 
 ### Task 1. Representation Learning
+
+본 프로젝트에서는 좋은 특징을 두루 갖춘 FashionCLIP의 Pre-trained 모델을 패션 아이템 이미지를 임베딩하는 단계에 이용하였습니다.
 
 > **FashionCLIP** [[repo]](https://github.com/patrickjohncyh/fashion-clip)
 >
@@ -34,8 +30,6 @@
 - **Representation:** 옷에 대한 좋은 Visual + Textual 지식을 가지고 있음
 - **Multimodality:** 텍스트와 이미지 모두 사용 가능
 - **Easy to Use:** 코드 사용성 좋음
-
-본 프로젝트에서는 위와 같이 좋은 특징을 두루 갖춘 FashionCLIP의 Pre-trained 모델을 패션 아이템 이미지를 임베딩하는 단계에 이용하였습니다.
 
 ### Task 2. Outfit Recommendation
 
