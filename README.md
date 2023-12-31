@@ -14,7 +14,7 @@
 
 ## 방법론
 
-![problem]('./asset/prob_formulation.png')
+![problem]('./image/prob_formulation.png')
 
 ### Task 1. Representation Learning
 
@@ -34,7 +34,7 @@
 
 프로젝트를 진행하며 다양한 구조와 손실 함수, 학습 테크닉을 시도했습니다. 그 중 주된 네 가지의 모델 구조를 소개합니다.
 
-![timeline]('./asset/model_history.png')
+![timeline]('./image/model_history.png')
 
 #### End-to-End Architecture
 
@@ -42,7 +42,7 @@
 <summary>FashionMLP</summary>
 <div markdown="1">
 
-![model]('./asset/fashionmlp.png')
+![model]('./image/fashionmlp.png')
 
 </div>
 </details>
@@ -51,7 +51,7 @@
 <summary>Style-Aware Network</summary>
 <div markdown="1">
 
-![model]('./asset/StyleAwareNet.png')
+![model]('./image/StyleAwareNet.png')
 
 </div>
 </details>
@@ -62,7 +62,7 @@
 <summary>Style-Agnostic Network</summary>
 <div markdown="1">
 
-![model]('./asset/StyleAgnosticNet.png')
+![model]('./image/StyleAgnosticNet.png')
 
 </div>
 </details>
@@ -78,10 +78,10 @@
 
 ### Requirements
 
-'''bash
+```
 cd ai-stylist
 pip install -r requirements.txt
-'''
+```
 
 ## 사용 방법
 
@@ -93,73 +93,61 @@ pip install -r requirements.txt
 
 > FashionMLP
 
-'''bash
-
+```bash
 cd ai-stylist/FashionMLP/recommender
 python main.py
-
-'''
+```
 
 > StyleAwareNet
 
-'''bash
-
+```bash
 cd ai-stylist/FashStyleAwareNet/style_aware_net
 python main.py
-
-'''
+```
 
 > StyleAgnosticNet
 
-'''bash
-
+```bash
 cd ai-stylist/StyleAgnosticNet/style_agnostic_net
 python main.py
-
-'''
+```
 
 ### Training
 
 > StyleAwareNet
 
-'''bash
-
+```bash
 cd ai-stylist/FashStyleAwareNet
 python demo.py
-
-'''
+```
 
 > StyleAgnosticNet
 
-'''bash
-
+```bash
 cd ai-stylist/StyleAgnosticNet
 python demo2\_{DATASET_NAME}.py
-
-'''
+```
 
 > OutfitTransformer
 
-'''bash
-
+```bash
 cd ai-stylist/OutfitTransformer
 python rerank_items.py
-
-'''
+```
 
 ## 예시 결과
 
 ### Style Aware Network
 
-![result1]('./asset/result_styleawarenet.png)
+![result1]('./image/result_styleawarenet.png)
 
 ### Re-ranking with Style Agnostic Network
 
-![result2]('./asset/result_styleagnosticnet.png)
+![result2]('./image/result_styleagnosticnet.png)
 
 ### Re-ranking with Outfit Transformer
 
-![result3]('./asset/result_ot.png')
+![result3]('./image/result_ot.png')
 
 ## 팀원
 
